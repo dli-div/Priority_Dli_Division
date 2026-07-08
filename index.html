@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DLI Division — Priority Transfer Tracker</title>
+<style>
+  :root {
+    --navy: #1F4E5F;
+    --navy-dark: #163a47;
+    --amber: #C97A2B;
+    --cream: #F7F5F1;
+    --ink: #1E2426;
+    --line: #D8DEE1;
+    --good: #2E7D4F;
+    --bad: #B3311B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 20px 16px;
+  }
+  header .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.75;
+    margin: 0 0 4px;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+  }
+  main {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 16px 64px;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .landing-buttons {
+    display: grid;
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .big-btn {
+    display: block;
+    width: 100%;
+    padding: 20px;
+    font-size: 18px;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #fff;
+    background: var(--navy);
+    text-align: left;
+  }
+  .big-btn small {
+    display: block;
+    font-weight: 400;
+    font-size: 13px;
+    opacity: 0.85;
+    margin-top: 4px;
+  }
+  .big-btn.secondary { background: var(--amber); }
+  .big-btn:hover { opacity: 0.92; }
+  label {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+    margin: 16px 0 6px;
+  }
+  input[type="text"], input[type="tel"], select, input[type="file"] {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+  }
+  .radio-row { display: flex; gap: 20px; margin-top: 6px; }
+  .radio-row label { display: flex; align-items: center; gap: 6px; font-weight: 500; margin: 0; }
+  .hint { font-size: 13px; color: #5b6b70; margin-top: 4px; }
+  .actions { margin-top: 24px; display: flex; gap: 12px; }
+  .btn { padding: 12px 20px; font-size: 15px; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; }
+  .btn-primary { background: var(--navy); color: #fff; }
+  .btn-text { background: transparent; color: var(--navy); text-decoration: underline; padding: 12px 4px; }
+  .msg { padding: 14px; border-radius: 6px; margin-top: 16px; font-size: 14px; }
+  .msg.error { background: #FBEAE7; color: var(--bad); border: 1px solid #f0c4bc; }
+  .msg.success { background: #E8F3EC; color: var(--good); border: 1px solid #b9dcc4; }
+  .rank-table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+  .rank-table th, .rank-table td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .rank-table th { color: #5b6b70; font-weight: 600; }
+  .posting-row {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 10px;
+    background: #fbfaf8;
+  }
+  .posting-row .posting-row-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 4px;
+  }
+  .posting-row .remove-posting { background: transparent; border: none; color: var(--bad); font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; }
+  .posting-row-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .posting-row-fields > div { grid-column: span 2; }
+  .posting-row-fields label { margin: 6px 0 4px; font-size: 13px; }
+  .hidden { display: none !important; }
+  .footer-link { text-align: center; margin-top: 28px; }
+  .footer-link a { color: #5b6b70; font-size: 12.5px; text-decoration: underline; cursor: pointer; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .badge.pending { background: #FDF2E3; color: #8a5a1e; }
+  .badge.rejected { background: #FBEAE7; color: var(--bad); }
+  .badge.active { background: #E8F3EC; color: var(--good); }
+  .pending-card { border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 14px; }
+  .pending-card .row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; margin-bottom: 4px; }
+  .pending-card .row b { color: var(--navy); }
+  .pending-card .doc-link { display: inline-block; margin: 10px 0; font-size: 13px; color: var(--navy); font-weight: 600; }
+  .pending-actions { display: flex; gap: 10px; margin-top: 10px; }
+  .btn-approve { background: var(--good); color: #fff; }
+  .btn-reject { background: var(--bad); color: #fff; }
+  .btn-small { padding: 9px 16px; font-size: 13px; }
+  #overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  #overlay .card { max-width: 420px; }
+  .spinner { text-align: center; padding: 30px; color: #5b6b70; }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">DLI Division · Phase 1 — Pointsman</p>
+  <h1>Priority Transfer Tracker</h1>
+</header>
+
+<main>
+
+  <!-- LANDING -->
+  <section id="view-landing">
+    <div class="landing-buttons">
+      <button class="big-btn" onclick="showView('new')">
+        New Priority
+        <small>Submit a priority application for transfer to another station</small>
+      </button>
+      <button class="big-btn secondary" onclick="showView('status')">
+        Check Priority Status
+        <small>Look up your existing application and station-wise rank</small>
+      </button>
+    </div>
+    <div class="footer-link"><a onclick="showView('admin-login')">Staff / Admin Login</a></div>
+  </section>
+
+  <!-- NEW PRIORITY FORM -->
+  <section id="view-new" class="hidden">
+    <div class="card">
+      <h2>New Priority Application</h2>
+
+      <label for="f-name">Name</label>
+      <input type="text" id="f-name" required>
+
+      <label for="f-father">Father's Name</label>
+      <input type="text" id="f-father" required>
+
+      <label for="f-phone">Phone Number</label>
+      <input type="tel" id="f-phone" required>
+
+      <label for="f-hrms">HRMS ID</label>
+      <input type="text" id="f-hrms" required>
+
+      <label for="f-pf">PF No.</label>
+      <input type="text" id="f-pf" required>
+      <div class="hint">Used to confirm it's genuinely you on any future submission — must stay consistent each time.</div>
+
+      <label for="f-designation">Designation</label>
+      <select id="f-designation">
+        <option value="PMAN">Pointsman</option>
+      </select>
+
+      <label for="f-current-station">Current Place of Posting</label>
+      <input type="text" id="f-current-station" list="station-list" required>
+
+      <label for="f-time-posting">Time Since Current Posting</label>
+      <select id="f-time-posting">
+        <option value="Less than 1 year">Less than 1 year</option>
+        <option value="1-2 years">1-2 years</option>
+        <option value="2-5 years">2-5 years</option>
+        <option value="More than 5 years">More than 5 years</option>
+      </select>
+
+      <label for="f-current-from">Posted Here Since (From)</label>
+      <input type="date" id="f-current-from" required>
+
+      <label>Posted Here Till</label>
+      <input type="text" value="Presently Working Here" disabled style="background:#eee;color:#5b6b70;">
+
+      <label for="f-posting-order-date">Date of Posting Order (P. Branch Letter)</label>
+      <input type="date" id="f-posting-order-date" required>
+      <div class="hint">Used to confirm it's genuinely you on any future submission — must stay consistent each time.</div>
+
+      <label>Previous Postings (since joining)</label>
+      <div class="hint">Add every station you've served at before your current posting, in order. Click "+ Add Previous Posting" for each one.</div>
+      <div id="previous-postings-container"></div>
+      <button type="button" class="btn btn-text" style="padding-left:0;margin-top:8px;" onclick="addPreviousPostingRow()">+ Add Previous Posting</button>
+
+      <label for="f-pref1">Priority Station 1 (1st preference)</label>
+      <input type="text" id="f-pref1" list="station-list" required>
+
+      <label for="f-pref2">Priority Station 2 (optional)</label>
+      <input type="text" id="f-pref2" list="station-list">
+
+      <label for="f-pref3">Priority Station 3 (optional)</label>
+      <input type="text" id="f-pref3" list="station-list">
+
+      <datalist id="station-list"></datalist>
+
+      <label for="f-last-transfer">Last Transfer (Own Request / Administrative Interest)</label>
+      <input type="text" id="f-last-transfer" placeholder="e.g. Own request, transferred to DLI in 2019">
+      <div class="hint">Optional — briefly note your most recent transfer, if any, and whether it was on your own request or an administrative posting.</div>
+
+      <label>Is this application forwarded through proper authority?</label>
+      <div class="radio-row">
+        <label><input type="radio" name="f-authority" value="Yes" onchange="onAuthorityChange()"> Yes</label>
+        <label><input type="radio" name="f-authority" value="No" onchange="onAuthorityChange()"> No</label>
+      </div>
+
+      <div id="upload-block" class="hidden">
+        <label for="f-document">Upload signed application (PDF or JPG) <span style="color:var(--bad);font-weight:700;">*</span></label>
+        <input type="file" id="f-document" accept=".pdf,.jpg,.jpeg">
+      </div>
+
+      <div id="new-msg"></div>
+
+      <div class="actions">
+        <button class="btn btn-primary" onclick="handleSubmit()">Submit Priority Application</button>
+        <button class="btn btn-text" onclick="showView('landing')">Back</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHECK STATUS -->
+  <section id="view-status" class="hidden">
+    <div class="card">
+      <h2>Check Priority Status</h2>
+      <label for="s-hrms">Enter your HRMS ID</label>
+      <input type="text" id="s-hrms" required>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="handleCheckStatus()">Check Status</button>
+        <button class="btn btn-text" onclick="showView('landing')">Back</button>
+      </div>
+      <div id="status-result"></div>
+      <div id="resubmit-block" class="hidden">
+        <label for="s-document">Upload corrected signed document (PDF or JPG)</label>
+        <input type="file" id="s-document" accept=".pdf,.jpg,.jpeg">
+        <div class="actions">
+          <button class="btn btn-primary" onclick="handleResubmit()">Resubmit Document</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN / STAFF LOGIN -->
+  <section id="view-admin-login" class="hidden">
+    <div class="card">
+      <h2>Staff / Admin Login</h2>
+      <label for="a-hrms">HRMS ID</label>
+      <input type="text" id="a-hrms">
+      <label for="a-password">Password</label>
+      <input type="text" id="a-password" style="-webkit-text-security: disc;">
+      <div id="admin-login-msg"></div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="handleAdminLogin()">Log In</button>
+        <button class="btn btn-text" onclick="showView('landing')">Back</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN DASHBOARD -->
+  <section id="view-admin-dashboard" class="hidden">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h2>Pending Verification</h2>
+        <button class="btn btn-text" onclick="handleAdminLogout()">Log Out</button>
+      </div>
+      <div id="admin-dashboard-content"></div>
+    </div>
+  </section>
+
+</main>
+
+<div id="overlay" class="hidden">
+  <div class="card">
+    <div id="overlay-content"></div>
+  </div>
+</div>
+
+<script>
+// ============ CONFIG ============
+// Replace this with your Apps Script Web App /exec URL after deploying Code.gs
+const APPS_SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+const STATIONS = ["ABO","AMN","ANDI","ANVT","ASE","AST","BBDE","BDMJ","BGZ","BHD","BHMW","BHUL","BLZ","BMHR","BPM","BRSQ","BRZ","BSPH","BTU","BVH","BWSN","BZJT","BZK","BZO","CNL","CYZ","DBD","DBSI","DEC","DEE","DGHL","DHKR","DHY","DHZM","DKZ","DLI","DOBH BAHALI","DPP","DRLA","DSA","DSJ","DTN","DWNA","FDB","FDN","FN","GGN","GHE","GHH","GHNA","GKG","GNU","GRA","GSO","GUH","GZB","HIND","HMQ","HNZM","HUK","IHP","JCY","JDW","JHI","JHJ","JHL","JJT","JNA","JNC","JSKA","KAT","KEX","KHV","KIP","KIU","KIY","KKDE","KLE","KPKI","KQL","KRZ","KTF","KUN","KURN","KZH","KZW","LPNR","MAUR","MDLA","MDNR","MHRI","MLDE","MNZ","MOHR","MOKHRA MADINA","MOY","MOZ","MSP","MSZ","MTC","MUD","MUNDHAL KALAN","MUT","MUZ","NDLS","NGL","NLH","NLKR","NNO","NNX","NOLI","NPX","NRW","NUR","OKA","PHWR","PKDE","PLHW","PM","PNP","PPDE","PQY","PRTP","PT","PTNR1","PTNR2","PTRD","PWL","PYLA","RDDE","RNA","ROK","RPMN","RUG","SBB","SFDE","SHDM","SKF","SLKN","SMF","SMK","SMQL","SNP","SPZ","SSB","SSZ","SZM","THBN","THJ","TI","TKD","TKJ","TPZ","TRR","TUN","UCA"];
+
+document.addEventListener('DOMContentLoaded', function () {
+  const dl = document.getElementById('station-list');
+  STATIONS.forEach(function (s) {
+    const opt = document.createElement('option');
+    opt.value = s;
+    dl.appendChild(opt);
+  });
+});
+
+function showView(name) {
+  ['landing', 'new', 'status', 'admin-login', 'admin-dashboard'].forEach(function (v) {
+    document.getElementById('view-' + v).classList.toggle('hidden', v !== name);
+  });
+  if (name === 'admin-dashboard') loadPendingApplications();
+}
+
+function onAuthorityChange() {
+  const val = document.querySelector('input[name="f-authority"]:checked').value;
+  const uploadBlock = document.getElementById('upload-block');
+  if (val === 'No') {
+    alert('This application cannot be submitted without forwarding through the proper authority. Please obtain approval before proceeding.');
+    uploadBlock.classList.add('hidden');
+  } else {
+    uploadBlock.classList.remove('hidden');
+  }
+}
+
+function showOverlay(html) {
+  document.getElementById('overlay-content').innerHTML = html;
+  document.getElementById('overlay').classList.remove('hidden');
+}
+function hideOverlay() {
+  document.getElementById('overlay').classList.add('hidden');
+}
+
+function fileToBase64(file) {
+  return new Promise(function (resolve, reject) {
+    const reader = new FileReader();
+    reader.onload = function () { resolve(reader.result.split(',')[1]); };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function callBackend(payload) {
+  return fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
+    body: JSON.stringify(payload)
+  }).then(function (r) { return r.json(); });
+}
+
+var postingRowSeq = 0;
+
+function addPreviousPostingRow(prefill) {
+  postingRowSeq++;
+  var idx = postingRowSeq;
+  var container = document.getElementById('previous-postings-container');
+  var row = document.createElement('div');
+  row.className = 'posting-row';
+  row.dataset.rowId = idx;
+  row.innerHTML =
+    '<div class="posting-row-head"><span>Previous Posting</span>' +
+    '<button type="button" class="remove-posting" onclick="removePostingRow(this)">Remove</button></div>' +
+    '<div class="posting-row-fields">' +
+      '<div><label>Station</label><input type="text" class="prev-station" list="station-list"></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+        '<div><label>From</label><input type="date" class="prev-from"></div>' +
+        '<div><label>Till</label><input type="date" class="prev-till"></div>' +
+      '</div>' +
+    '</div>';
+  container.appendChild(row);
+}
+
+function removePostingRow(btn) {
+  btn.closest('.posting-row').remove();
+}
+
+function readPreviousPostings() {
+  var rows = document.querySelectorAll('#previous-postings-container .posting-row');
+  var out = [];
+  rows.forEach(function (row) {
+    var station = row.querySelector('.prev-station').value.trim();
+    var from = row.querySelector('.prev-from').value;
+    var till = row.querySelector('.prev-till').value;
+    if (station || from || till) out.push({ station: station, from: from, till: till });
+  });
+  return out;
+}
+
+function readForm() {
+  const authorityEl = document.querySelector('input[name="f-authority"]:checked');
+  return {
+    name: document.getElementById('f-name').value.trim(),
+    fatherName: document.getElementById('f-father').value.trim(),
+    phone: document.getElementById('f-phone').value.trim(),
+    hrmsId: document.getElementById('f-hrms').value.trim(),
+    pfNo: document.getElementById('f-pf').value.trim(),
+    designation: document.getElementById('f-designation').value,
+    currentStation: document.getElementById('f-current-station').value.trim(),
+    timeSincePosting: document.getElementById('f-time-posting').value,
+    currentPostingFrom: document.getElementById('f-current-from').value,
+    postingOrderDate: document.getElementById('f-posting-order-date').value,
+    previousPostings: readPreviousPostings(),
+    lastTransfer: document.getElementById('f-last-transfer').value.trim(),
+    pref1: document.getElementById('f-pref1').value.trim(),
+    pref2: document.getElementById('f-pref2').value.trim(),
+    pref3: document.getElementById('f-pref3').value.trim(),
+    forwardedAuthority: authorityEl ? authorityEl.value : ''
+  };
+}
+
+function showMsg(elId, text, type) {
+  document.getElementById(elId).innerHTML = '<div class="msg ' + type + '">' + text + '</div>';
+}
+
+async function handleSubmit() {
+  const form = readForm();
+  if (!form.name || !form.hrmsId || !form.pfNo || !form.postingOrderDate || !form.pref1 || !form.forwardedAuthority) {
+    showMsg('new-msg', 'Please fill in all required fields.', 'error');
+    return;
+  }
+  if (form.forwardedAuthority !== 'Yes') {
+    showMsg('new-msg', 'Cannot submit without proper approval.', 'error');
+    return;
+  }
+  const fileInput = document.getElementById('f-document');
+  if (!fileInput.files || !fileInput.files[0]) {
+    showMsg('new-msg', 'Please upload your signed application document — this is mandatory.', 'error');
+    return;
+  }
+
+  showOverlay('<div class="spinner">Checking existing applications…</div>');
+  try {
+    const dup = await callBackend(Object.assign({ action: 'checkDuplicate' }, form));
+    hideOverlay();
+
+    if (dup.duplicate && dup.samePreferences) {
+      showMsg('new-msg', 'You already have an active priority application in queue (Priority No. ' + dup.existingAppId + ').', 'error');
+      return;
+    }
+    if (dup.duplicate && !dup.samePreferences) {
+      const proceed = confirm(
+        'You already have an active priority (No. ' + dup.existingAppId + ') with different station preferences.\n\n' +
+        'Continuing will change your priority date to today, and you will move lower in the priority order for the new stations.\n\n' +
+        'Continue?'
+      );
+      if (!proceed) return;
+      await finalizeSubmit(form, true);
+    } else {
+      await finalizeSubmit(form, false);
+    }
+  } catch (err) {
+    hideOverlay();
+    showMsg('new-msg', 'Something went wrong: ' + err.message, 'error');
+  }
+}
+
+async function finalizeSubmit(form, confirmSupersede) {
+  showOverlay('<div class="spinner">Submitting your priority application…</div>');
+  const fileInput = document.getElementById('f-document');
+  const payload = Object.assign({ action: 'submitApplication', confirmSupersede: confirmSupersede }, form);
+
+  if (fileInput.files && fileInput.files[0]) {
+    const file = fileInput.files[0];
+    payload.documentBase64 = await fileToBase64(file);
+    payload.documentName = file.name;
+    payload.documentMime = file.type;
+  }
+
+  const result = await callBackend(payload);
+  hideOverlay();
+
+  if (!result.ok) {
+    showMsg('new-msg', result.error || 'Submission failed.', 'error');
+    return;
+  }
+  var rankLines = Object.keys(result.ranks || {}).map(function (k) {
+    var r = result.ranks[k];
+    return r.station + ': Priority Number ' + r.rank;
+  }).join(' · ');
+  showMsg('new-msg',
+    'Application submitted and <strong>sent for admin verification</strong>. Your Priority No. is <strong>' + result.appId + '</strong>. Your submission time is locked in, but your official priority number is confirmed once an admin approves your document.<br>' + rankLines,
+    'success');
+}
+
+async function handleCheckStatus() {
+  const hrmsId = document.getElementById('s-hrms').value.trim();
+  const resultDiv = document.getElementById('status-result');
+  if (!hrmsId) {
+    resultDiv.innerHTML = '<div class="msg error">Please enter your HRMS ID.</div>';
+    return;
+  }
+  resultDiv.innerHTML = '<div class="spinner">Looking up your application…</div>';
+  try {
+    const url = APPS_SCRIPT_URL + '?action=checkStatus&hrmsId=' + encodeURIComponent(hrmsId);
+    const res = await fetch(url).then(function (r) { return r.json(); });
+
+    if (!res.ok) {
+      resultDiv.innerHTML = '<div class="msg error">' + (res.error || 'Lookup failed.') + '</div>';
+      return;
+    }
+    if (res.found) {
+      var badgeClass = res.status === 'Active' || res.status === 'Expiring Soon' ? 'active'
+        : res.status === 'Rejected - Resubmission Needed' ? 'rejected' : 'pending';
+      var rows = Object.keys(res.ranks).map(function (k) {
+        var r = res.ranks[k];
+        return '<tr><td>' + r.station + '</td><td>Priority Number ' + r.rank + '</td></tr>';
+      }).join('');
+      var statusLine = '<span class="badge ' + badgeClass + '">' + res.status + '</span>';
+      var extra = '';
+      if (res.status === 'Pending Verification') {
+        extra = '<p class="hint">Awaiting admin verification. The priority number shown below is provisional — it becomes official once your document is approved. Your submission time is locked, and you\'ll rank above anyone who submits later.</p>';
+      } else if (res.status === 'Rejected - Resubmission Needed') {
+        extra = '<p class="hint" style="color:var(--bad)">Reason: ' + (res.rejectionReason || 'Document could not be verified.') + '</p>';
+      }
+      var postingHistoryLine = 'Current: ' + (res.currentStation || '—') + ' (since ' + (res.currentPostingFrom || '—') + ')';
+      if (res.previousPostings && res.previousPostings.length) {
+        postingHistoryLine += ' · Previous: ' + res.previousPostings.map(function (pp) {
+          return pp.station + ' (' + (pp.from || '—') + ' to ' + (pp.till || '—') + ')';
+        }).join(', ');
+      }
+      resultDiv.innerHTML =
+        '<div class="msg success">Priority No. ' + res.appId + ' &nbsp; ' + statusLine + '</div>' +
+        extra +
+        '<table class="rank-table"><thead><tr><th>Station</th><th>Your Priority Number</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<p class="hint">' + postingHistoryLine + '</p>' +
+        '<p class="hint">Filed on ' + new Date(res.filingDate).toDateString() + ' · Valid until ' + new Date(res.validityEndDate).toDateString() + '</p>';
+
+      const resubmitBlock = document.getElementById('resubmit-block');
+      if (res.canResubmit) {
+        resubmitBlock.classList.remove('hidden');
+        resubmitBlock.dataset.appId = res.appId;
+        resubmitBlock.dataset.hrmsId = hrmsId;
+      } else {
+        resubmitBlock.classList.add('hidden');
+      }
+    } else if (res.archivedInfo) {
+      resultDiv.innerHTML = '<div class="msg error">No active application. Last record: ' + res.archivedInfo.appId + ' — ' + res.archivedInfo.status + (res.archivedInfo.reason ? (' (' + res.archivedInfo.reason + ')') : '') + '</div>';
+      document.getElementById('resubmit-block').classList.add('hidden');
+    } else {
+      resultDiv.innerHTML = '<div class="msg error">No priority application found for this HRMS ID.</div>';
+      document.getElementById('resubmit-block').classList.add('hidden');
+    }
+  } catch (err) {
+    resultDiv.innerHTML = '<div class="msg error">Something went wrong: ' + err.message + '</div>';
+    document.getElementById('resubmit-block').classList.add('hidden');
+  }
+}
+
+async function handleResubmit() {
+  const block = document.getElementById('resubmit-block');
+  const fileInput = document.getElementById('s-document');
+  if (!fileInput.files || !fileInput.files[0]) {
+    alert('Please choose a file to upload.');
+    return;
+  }
+  showOverlay('<div class="spinner">Uploading corrected document…</div>');
+  try {
+    const file = fileInput.files[0];
+    const payload = {
+      action: 'resubmitDocument',
+      appId: block.dataset.appId,
+      hrmsId: block.dataset.hrmsId,
+      documentBase64: await fileToBase64(file),
+      documentName: file.name,
+      documentMime: file.type
+    };
+    const result = await callBackend(payload);
+    hideOverlay();
+    if (!result.ok) {
+      alert(result.error || 'Resubmission failed.');
+      return;
+    }
+    alert('Document resubmitted. It is now back in the admin verification queue.');
+    handleCheckStatus();
+  } catch (err) {
+    hideOverlay();
+    alert('Something went wrong: ' + err.message);
+  }
+}
+
+// ---------- ADMIN ----------
+function getAdminToken() { return sessionStorage.getItem('adminToken'); }
+
+async function handleAdminLogin() {
+  const hrmsId = document.getElementById('a-hrms').value.trim();
+  const password = document.getElementById('a-password').value;
+  if (!hrmsId || !password) {
+    showMsg('admin-login-msg', 'Please enter HRMS ID and password.', 'error');
+    return;
+  }
+  showOverlay('<div class="spinner">Logging in…</div>');
+  try {
+    const result = await callBackend({ action: 'adminLogin', hrmsId: hrmsId, password: password });
+    hideOverlay();
+    if (!result.ok) {
+      showMsg('admin-login-msg', result.error || 'Login failed.', 'error');
+      return;
+    }
+    sessionStorage.setItem('adminToken', result.token);
+    sessionStorage.setItem('adminName', result.name);
+    sessionStorage.setItem('adminRole', result.role);
+    showView('admin-dashboard');
+  } catch (err) {
+    hideOverlay();
+    showMsg('admin-login-msg', 'Something went wrong: ' + err.message, 'error');
+  }
+}
+
+function handleAdminLogout() {
+  sessionStorage.removeItem('adminToken');
+  sessionStorage.removeItem('adminName');
+  sessionStorage.removeItem('adminRole');
+  showView('landing');
+}
+
+async function loadPendingApplications() {
+  const content = document.getElementById('admin-dashboard-content');
+  const token = getAdminToken();
+  if (!token) {
+    showView('admin-login');
+    return;
+  }
+  content.innerHTML = '<div class="spinner">Loading pending applications…</div>';
+  try {
+    const url = APPS_SCRIPT_URL + '?action=listPending&token=' + encodeURIComponent(token);
+    const res = await fetch(url).then(function (r) { return r.json(); });
+    if (!res.ok) {
+      content.innerHTML = '<div class="msg error">' + (res.error || 'Session expired.') + '</div>';
+      return;
+    }
+    if (!res.pending.length) {
+      content.innerHTML = '<p class="hint">No applications currently awaiting verification.</p>';
+      return;
+    }
+    content.innerHTML = res.pending.map(function (p) {
+      return '<div class="pending-card">' +
+        '<div class="row"><span><b>' + p.name + '</b> (HRMS: ' + p.hrmsId + ')</span><span>' + p.appId + '</span></div>' +
+        '<div class="row"><span>Father: ' + p.fatherName + '</span><span>Phone: ' + p.phone + '</span></div>' +
+        '<div class="row"><span>Current: ' + p.currentStation + ' (since ' + (p.currentPostingFrom || '—') + ')</span><span>Preferences: ' + p.preferences.join(', ') + '</span></div>' +
+        '<div class="row"><span>PF No: ' + (p.pfNo || '—') + '</span><span>Posting Order Date: ' + (p.postingOrderDate || '—') + '</span></div>' +
+        (p.lastTransfer ? '<div class="row"><span>Last Transfer: ' + p.lastTransfer + '</span></div>' : '') +
+        '<div class="row"><span>Previous postings: ' + ((p.previousPostings && p.previousPostings.length) ? p.previousPostings.map(function (pp) { return pp.station + ' (' + (pp.from || '—') + ' to ' + (pp.till || '—') + ')'; }).join('; ') : 'None recorded') + '</span></div>' +
+        (p.documentLink ? '<a class="doc-link" href="' + p.documentLink + '" target="_blank">View uploaded document →</a>' : '<p class="hint">No document uploaded.</p>') +
+        '<div class="pending-actions">' +
+          '<button class="btn btn-approve btn-small" onclick="handleReview(\'' + p.appId + '\',\'approve\')">Approve</button>' +
+          '<button class="btn btn-reject btn-small" onclick="handleReview(\'' + p.appId + '\',\'reject\')">Reject</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch (err) {
+    content.innerHTML = '<div class="msg error">Something went wrong: ' + err.message + '</div>';
+  }
+}
+
+async function handleReview(appId, decision) {
+  var reason = '';
+  if (decision === 'reject') {
+    reason = prompt('Reason for rejection (shown to the applicant):', 'Document not legible / not properly signed.');
+    if (reason === null) return;
+  }
+  const token = getAdminToken();
+  showOverlay('<div class="spinner">Recording decision…</div>');
+  try {
+    const result = await callBackend({ action: 'reviewApplication', token: token, appId: appId, decision: decision, reason: reason });
+    hideOverlay();
+    if (!result.ok) {
+      alert(result.error || 'Action failed.');
+      return;
+    }
+    loadPendingApplications();
+  } catch (err) {
+    hideOverlay();
+    alert('Something went wrong: ' + err.message);
+  }
+}
+</script>
+
+</body>
+</html>
