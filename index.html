@@ -1,0 +1,2578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DLI Division — Priority Transfer Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1F4E5F;
+    --navy-dark: #163a47;
+    --navy-deep: #0e1f28;
+    --amber: #C97A2B;
+    --cream: #F7F5F1;
+    --ink: #1E2426;
+    --line: #D8DEE1;
+    --good: #2E7D4F;
+    --bad: #B3311B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  header {
+    background: var(--navy-dark);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  }
+  .topbar {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 20px;
+  }
+  .logo-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
+    background: var(--amber);
+    color: var(--navy-deep);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .topbar-left h1 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .topbar-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+  .clock {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--amber);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+  .zone-label {
+    font-family: 'JetBrains Mono', monospace;
+    color: rgba(255,255,255,0.55);
+    font-size: 11px;
+    display: none;
+  }
+  @media (min-width: 480px) { .zone-label { display: inline; } }
+  .tab-nav {
+    background: var(--navy-deep);
+    display: flex;
+    gap: 4px;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 12px;
+    overflow-x: auto;
+  }
+  .tab-link {
+    display: block;
+    padding: 12px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+  }
+  .tab-link.active {
+    color: var(--amber);
+    border-bottom-color: var(--amber);
+  }
+  main {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 24px 16px 64px;
+  }
+  main.landing-wide {
+    max-width: 1080px;
+    padding: 0 20px 0;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .hero-section {
+    text-align: center;
+    padding: 56px 16px 36px;
+    position: relative;
+    z-index: 1;
+  }
+  .eyebrow-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--amber);
+    margin: 0 0 14px;
+  }
+  .eyebrow-line::before, .eyebrow-line::after {
+    content: '';
+    width: 36px;
+    height: 1px;
+    background: var(--amber);
+    opacity: 0.6;
+  }
+  .hero-title {
+    font-family: 'Sora', sans-serif;
+    font-weight: 800;
+    font-size: clamp(28px, 6vw, 44px);
+    color: var(--navy-dark);
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  .hero-subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: #6b7a80;
+    margin: 0;
+  }
+  .module-grid {
+    position: relative;
+    z-index: 1;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 20px 45px rgba(10, 20, 25, 0.18);
+    overflow: hidden;
+    margin: 0 0 20px;
+  }
+  .module-grid-head {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--navy-deep);
+  }
+  .module-grid-head span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.55);
+    padding: 12px 28px;
+  }
+  .module-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .module-tile {
+    padding: 28px;
+    border-top: 1px solid var(--line);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .module-tile:hover { background: #fbfaf8; }
+  .module-tile:nth-child(2) { border-left: 1px solid var(--line); }
+  .module-num {
+    font-family: 'Sora', sans-serif;
+    font-weight: 800;
+    font-size: 40px;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .module-num.amber { color: var(--amber); }
+  .module-num.green { color: var(--good); }
+  .module-kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: #8a97a0;
+    margin: 0 0 8px;
+  }
+  .module-tile h3 {
+    font-family: 'Sora', sans-serif;
+    font-size: 21px;
+    color: var(--navy-dark);
+    margin: 0 0 8px;
+  }
+  .module-desc { font-size: 14px; color: #4d5c61; margin: 0 0 16px; }
+  .module-features { list-style: none; padding: 0; margin: 0 0 22px; }
+  .module-features li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #4d5c61;
+    padding: 5px 0;
+  }
+  .module-features .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .module-features .dot.amber { background: var(--amber); }
+  .module-features .dot.green { background: var(--good); }
+  .module-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 12px 20px;
+    border-radius: 7px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .module-btn.amber { border: 1.5px solid var(--amber); color: var(--amber); }
+  .module-btn.green { border: 1.5px solid var(--good); color: var(--good); }
+  .module-btn:hover { opacity: 0.75; }
+  .select-prompt {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: #93a0a6;
+    margin: 4px 0 8px;
+    position: relative;
+    z-index: 1;
+  }
+  .ghost-train {
+    height: 130px;
+    overflow: hidden;
+    margin-top: -10px;
+  }
+  .ghost-train svg { width: 100%; height: 100%; display: block; }
+  @media (max-width: 700px) {
+    .module-body { grid-template-columns: 1fr; }
+    .module-tile:nth-child(2) { border-left: none; }
+    .module-grid-head span:nth-child(2) { display: none; }
+    .module-grid-head { grid-template-columns: 1fr; }
+  }
+  label {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+    margin: 16px 0 6px;
+  }
+  input[type="text"], input[type="tel"], select, input[type="file"] {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+  }
+  .radio-row { display: flex; gap: 20px; margin-top: 6px; }
+  .radio-row label { display: flex; align-items: center; gap: 6px; font-weight: 500; margin: 0; }
+  .hint { font-size: 13px; color: #5b6b70; margin-top: 4px; }
+  .actions { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { padding: 12px 20px; font-size: 15px; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; }
+  .btn-primary { background: var(--navy); color: #fff; }
+  .btn-text { background: transparent; color: var(--navy); text-decoration: underline; padding: 12px 4px; }
+  .msg { padding: 14px; border-radius: 6px; margin-top: 16px; font-size: 14px; }
+  .msg.error { background: #FBEAE7; color: var(--bad); border: 1px solid #f0c4bc; }
+  .msg.success { background: #E8F3EC; color: var(--good); border: 1px solid #b9dcc4; }
+  .rank-table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+  .rank-table th, .rank-table td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .rank-table th { color: #5b6b70; font-weight: 600; }
+  .posting-row {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 10px;
+    background: #fbfaf8;
+  }
+  .posting-row .posting-row-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 4px;
+  }
+  .posting-row .remove-posting { background: transparent; border: none; color: var(--bad); font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; }
+  .posting-row-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .posting-row-fields > div { grid-column: span 2; }
+  .posting-row-fields label { margin: 6px 0 4px; font-size: 13px; }
+  .hidden { display: none !important; }
+  .footer-link { text-align: center; margin-top: 28px; }
+  .footer-link a { color: #5b6b70; font-size: 12.5px; text-decoration: underline; cursor: pointer; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+  .badge.pending { background: #FDF2E3; color: #8a5a1e; }
+  .badge.rejected { background: #FBEAE7; color: var(--bad); }
+  .badge.active { background: #E8F3EC; color: var(--good); }
+  .pending-card { border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 14px; }
+  .pending-card .row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; margin-bottom: 4px; }
+  .pending-card .row b { color: var(--navy); }
+  .pending-card .doc-link { display: inline-block; margin: 10px 0; font-size: 13px; color: var(--navy); font-weight: 600; }
+  .pending-actions { display: flex; gap: 10px; margin-top: 10px; }
+  .btn-approve { background: var(--good); color: #fff; }
+  .btn-reject { background: var(--bad); color: #fff; }
+  .btn-small { padding: 9px 16px; font-size: 13px; }
+  .kpi-month { font-size: 13px; color: #5b6b70; margin: 0 0 12px; font-weight: 600; }
+  .kpi-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .kpi-post-card { border: 1px solid var(--line); border-radius: 8px; padding: 16px; background: #fbfaf8; }
+  .kpi-post-card h3 { margin: 0 0 12px; font-size: 15px; color: var(--navy); }
+  .kpi-stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
+  .kpi-stat { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 10px 6px; cursor: pointer; transition: background 0.15s; }
+  .kpi-stat:hover { background: #f0ede7; }
+  .kpi-stat .kpi-num { font-size: 20px; font-weight: 700; color: var(--navy); }
+  .kpi-stat .kpi-label { font-size: 11px; color: #5b6b70; margin-top: 2px; }
+  .kpi-stat.rejected .kpi-num { color: var(--bad); }
+  .kpi-stat.approved .kpi-num { color: var(--good); }
+  #overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  #overlay .card {
+    max-width: 420px;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  #overlay .card.wide { max-width: 640px; width: 100%; }
+  .modal-sticky-head {
+    position: sticky;
+    top: -24px;
+    margin: -24px -24px 12px;
+    padding: 24px 24px 12px;
+    background: #fff;
+    z-index: 2;
+    border-bottom: 1px solid var(--line);
+  }
+  .report-dates { display: flex; gap: 12px; }
+  .report-dates > div { flex: 1; }
+  .board-search { display: flex; gap: 10px; margin-bottom: 14px; }
+  .board-search input { flex: 1; }
+  .board-subhead { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #8a97a0; margin: 14px 0 6px; }
+  .board-chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  .board-chip {
+    padding: 6px 13px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: #fff;
+    font-size: 12.5px;
+    color: #4d5c61;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .board-chip:hover { background: #f0ede7; }
+  .board-chip.post.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .board-chip.station.active { background: var(--amber); color: #fff; border-color: var(--amber); }
+  .board-chip .chip-remove { margin-left: 6px; opacity: 0.75; font-weight: 700; }
+  .board-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  .board-table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  .board-table th, .board-table td { border: 1px solid var(--line); padding: 7px 10px; text-align: center; white-space: nowrap; }
+  .board-table thead th { background: var(--navy-dark); color: #fff; font-weight: 600; font-size: 12px; }
+  .board-table th.post-col, .board-table td.post-name {
+    position: sticky; left: 0; text-align: left; z-index: 1;
+  }
+  .board-table th.post-col { z-index: 3; }
+  .board-table td.post-name { background: #fbfaf8; font-weight: 600; }
+  .board-cell-approved { color: var(--good); font-weight: 700; }
+  .board-cell-pending { color: var(--amber); font-weight: 700; }
+  .modal-list-item { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 10px; font-size: 13.5px; }
+  .modal-list-item .row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 3px; }
+  .spinner { text-align: center; padding: 30px; color: #5b6b70; }
+  .manage-block { border-top: 1px dashed var(--line); margin-top: 22px; padding-top: 18px; }
+  .manage-block h3 { font-size: 16px; margin: 0 0 6px; color: var(--navy-dark); }
+  .change-banner { background: #FDF2E3; border: 1px solid #f0dcb8; color: #8a5a1e; padding: 12px 14px; border-radius: 6px; font-size: 13.5px; margin-top: 10px; }
+
+  /* ===== OFFICERS DASHBOARD — rose gold / blue theme ===== */
+  .officer-dash {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(90, 45, 55, 0.18);
+    margin-bottom: 24px;
+  }
+  .officer-dash-hero {
+    background: linear-gradient(135deg, #EFC9C4 0%, #E3B0AC 45%, #C98C86 100%);
+    padding: 30px 26px 24px;
+    position: relative;
+  }
+  .officer-dash-hero::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 88% 15%, rgba(255,255,255,0.4), transparent 55%);
+    pointer-events: none;
+  }
+  .officer-dash-hero-inner { position: relative; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  .officer-dash-hero h2 {
+    font-family: 'Sora', sans-serif;
+    font-size: 25px;
+    font-weight: 800;
+    color: #23446B;
+    margin: 0 0 8px;
+  }
+  .officer-dash-hero p { color: #5a4143; font-size: 13.5px; max-width: 480px; margin: 0; }
+  .btn-officer-logout {
+    background: #23446B;
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 12.5px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-officer-logout:hover { background: #17304f; }
+  .officer-dash-body { background: #fdf5f3; padding: 24px; }
+  .officer-summary-live-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #2fbf71;
+    margin-left: 6px;
+    animation: officer-live-pulse 2s infinite;
+  }
+  @keyframes officer-live-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(47,191,113,0.55); }
+    70% { box-shadow: 0 0 0 7px rgba(47,191,113,0); }
+    100% { box-shadow: 0 0 0 0 rgba(47,191,113,0); }
+  }
+  .officer-summary-updated { font-size: 11px; color: #a9716f; margin: -6px 0 14px; }
+  .officer-summary-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  .officer-summary-tile {
+    border-radius: 16px;
+    padding: 20px 18px;
+    color: #fff;
+    cursor: pointer;
+    transition: transform 0.18s, box-shadow 0.18s;
+  }
+  .officer-summary-tile:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 12px 26px rgba(0,0,0,0.2); }
+  .officer-summary-tile.selected { box-shadow: 0 0 0 3px rgba(255,255,255,0.85), 0 12px 26px rgba(0,0,0,0.25); }
+  .officer-summary-tile-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.9;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .officer-summary-tile-num { font-family: 'Sora', sans-serif; font-size: 38px; font-weight: 800; line-height: 1; }
+  .tile-sm { background: linear-gradient(135deg, #3d7bf5 0%, #1a3f8f 100%); }
+  .tile-pointsman { background: linear-gradient(135deg, #f7ac2e 0%, #c9740a 100%); }
+  .tile-gtm { background: linear-gradient(135deg, #34c77c 0%, #147a44 100%); }
+  .tile-clerk { background: linear-gradient(135deg, #a377f2 0%, #5c2ea6 100%); }
+  .tile-ss { background: linear-gradient(135deg, #f16aa0 0%, #b3235e 100%); }
+  .tile-extra { background: linear-gradient(135deg, #7c8ca3 0%, #3d4a5c 100%); }
+  .officer-summary-search-row { margin-bottom: 24px; }
+  .officer-chart-title { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 800; color: #23446B; margin: 0 0 16px; }
+  .officer-chart-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .officer-chart-station {
+    width: 60px;
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #7a4a4a;
+    text-align: right;
+  }
+  .officer-chart-bar-track { flex: 1; background: #f6e2df; border-radius: 8px; height: 26px; overflow: hidden; }
+  .officer-chart-bar-fill { height: 100%; border-radius: 8px; transition: width 0.4s ease; min-width: 4%; }
+  .officer-chart-count {
+    width: 44px;
+    flex-shrink: 0;
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    color: #23446B;
+  }
+  .officer-mode-toggle { display: flex; gap: 8px; margin-bottom: 24px; background: #fff; border: 1.5px solid #E3B8B4; border-radius: 12px; padding: 5px; width: fit-content; }
+  .officer-mode-btn {
+    background: transparent;
+    border: none;
+    padding: 9px 20px;
+    border-radius: 9px;
+    font-weight: 800;
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    color: #7a4a4a;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .officer-mode-btn.active { background: #23446B; color: #fff; }
+  .officer-mode-btn:not(.active):hover { color: #23446B; }
+  .officer-panel { margin-bottom: 26px; }
+  .officer-panel:last-child { margin-bottom: 0; }
+  .officer-panel-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: #a9716f;
+    font-weight: 700;
+    margin: 0 0 10px;
+  }
+  .officer-chip-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+  .officer-chip {
+    padding: 9px 18px;
+    border-radius: 22px;
+    background: #fff;
+    border: 1.5px solid #E3B8B4;
+    color: #7a4a4a;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .officer-chip:hover { border-color: #23446B; color: #23446B; }
+  .officer-chip.active { background: #23446B; border-color: #23446B; color: #fff; }
+  .officer-station-matrix {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .officer-station-tile {
+    background: #fff;
+    border: 1.5px solid #E3B8B4;
+    border-radius: 10px;
+    padding: 16px 8px;
+    text-align: center;
+    font-weight: 800;
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    color: #7a4a4a;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .officer-station-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(150,100,100,0.2); }
+  .officer-station-tile.active { background: #23446B; border-color: #23446B; color: #fff; }
+  .officer-search-row { display: flex; gap: 10px; }
+  .officer-search-row input { flex: 1; border: 1.5px solid #E3B8B4; border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+  .officer-search-row select {
+    flex: 1;
+    border: 1.5px solid #E3B8B4;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    background: #fff;
+    color: #7a4a4a;
+    font-weight: 600;
+  }
+  .officer-search-row button { background: #23446B; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .officer-search-row button:hover { background: #17304f; }
+  .officer-results-panel { background: #fff; border-radius: 14px; padding: 22px; border: 1px solid #f0d9d6; }
+  .officer-results-title { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 800; color: #23446B; margin: 0 0 16px; }
+  .officer-box-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+  .officer-box {
+    background: linear-gradient(160deg, #fdf2ef 0%, #f6e2df 100%);
+    border: 1.5px solid #E8C4C0;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  .officer-box.highlight { border-color: #23446B; box-shadow: 0 0 0 3px rgba(35,68,107,0.25); }
+  .officer-box-label { font-size: 12px; color: #7a4a4a; font-weight: 700; margin-bottom: 6px; line-height: 1.3; }
+  .officer-box-num { font-family: 'Sora', sans-serif; font-size: 30px; font-weight: 800; color: #23446B; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="logo-badge">IR</span>
+      <h1>DLI Division — Priority Transfer Tracker</h1>
+    </div>
+    <div class="topbar-right">
+      <span id="live-clock" class="clock">--:--:--</span>
+      <span class="zone-label">Northern Railway</span>
+    </div>
+  </div>
+  <nav class="tab-nav">
+    <a class="tab-link" data-tab="landing" onclick="showView('landing')">Home</a>
+    <a class="tab-link" data-tab="new" onclick="showView('new')">New Priority</a>
+    <a class="tab-link" data-tab="status" onclick="showView('status')">Check Status</a>
+    <a class="tab-link" data-tab="admin-login" onclick="showView('admin-login')">Staff / Admin Login</a>
+    <a class="tab-link" data-tab="officer-login" onclick="showView('officer-login')">Officers Login</a>
+  </nav>
+</header>
+
+<main>
+
+  <!-- LANDING -->
+  <section id="view-landing">
+    <div class="hero-section">
+      <p class="eyebrow-line">NORTHERN RAILWAY · DLI DIVISION</p>
+      <h2 class="hero-title">Priority Transfer Tracker</h2>
+      <p class="hero-subtitle">DIGITAL PRIORITY QUEUE &middot; STATION TRANSFER MANAGEMENT</p>
+    </div>
+
+    <div class="module-grid">
+      <div class="module-grid-head">
+        <span>MODULE</span>
+        <span>WHAT YOU CAN DO</span>
+      </div>
+      <div class="module-body">
+        <div class="module-tile" onclick="showView('new')">
+          <div class="module-num amber">01</div>
+          <p class="module-kicker">APPLICANT &middot; NEW PRIORITY</p>
+          <h3>New Priority</h3>
+          <p class="module-desc">Submit a priority application for transfer to another station.</p>
+          <ul class="module-features">
+            <li><span class="dot amber"></span>Station-wise Ranking — Live</li>
+            <li><span class="dot amber"></span>Document Upload — Mandatory</li>
+            <li><span class="dot amber"></span>2-Year Validity — Tracked</li>
+          </ul>
+          <button class="module-btn amber" onclick="event.stopPropagation(); showView('new')">&#9654; APPLY NOW</button>
+        </div>
+        <div class="module-tile" onclick="showView('status')">
+          <div class="module-num green">02</div>
+          <p class="module-kicker">APPLICANT &middot; STATUS CHECK</p>
+          <h3>Check Priority Status</h3>
+          <p class="module-desc">Look up your existing application and station-wise rank.</p>
+          <ul class="module-features">
+            <li><span class="dot green"></span>Live Rank Lookup — Available</li>
+            <li><span class="dot green"></span>Change Station / Withdraw</li>
+            <li><span class="dot green"></span>Application History — Visible</li>
+          </ul>
+          <button class="module-btn green" onclick="event.stopPropagation(); showView('status')">&#9654; CHECK NOW</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="select-prompt">&#9660; SELECT A MODULE TO CONTINUE &#9660;</p>
+
+    <div class="ghost-train" aria-hidden="true">
+      <svg viewBox="0 0 1000 140" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax slice">
+        <g fill="none" stroke="#c7cdd0" stroke-width="2" opacity="0.55">
+          <rect x="20" y="40" width="150" height="55" rx="10"/>
+          <rect x="180" y="40" width="150" height="55" rx="10"/>
+          <rect x="340" y="40" width="150" height="55" rx="10"/>
+          <rect x="500" y="40" width="150" height="55" rx="10"/>
+          <rect x="660" y="40" width="150" height="55" rx="10"/>
+          <rect x="820" y="40" width="150" height="55" rx="10"/>
+          <line x1="0" y1="95" x2="1000" y2="95"/>
+          <circle cx="55" cy="105" r="9"/><circle cx="135" cy="105" r="9"/>
+          <circle cx="215" cy="105" r="9"/><circle cx="295" cy="105" r="9"/>
+          <circle cx="375" cy="105" r="9"/><circle cx="455" cy="105" r="9"/>
+          <circle cx="535" cy="105" r="9"/><circle cx="615" cy="105" r="9"/>
+          <circle cx="695" cy="105" r="9"/><circle cx="775" cy="105" r="9"/>
+          <circle cx="855" cy="105" r="9"/><circle cx="935" cy="105" r="9"/>
+          <line x1="45" y1="50" x2="80" y2="50"/>
+          <line x1="205" y1="50" x2="240" y2="50"/>
+          <line x1="365" y1="50" x2="400" y2="50"/>
+          <line x1="525" y1="50" x2="560" y2="50"/>
+          <line x1="685" y1="50" x2="720" y2="50"/>
+          <line x1="845" y1="50" x2="880" y2="50"/>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- NEW PRIORITY FORM -->
+  <section id="view-new" class="hidden">
+    <div class="card">
+      <h2>New Priority Application</h2>
+
+      <label for="f-name">Name</label>
+      <input type="text" id="f-name" required>
+
+      <label for="f-father">Father's Name</label>
+      <input type="text" id="f-father" required>
+
+      <label for="f-phone">Phone Number</label>
+      <input type="tel" id="f-phone" required>
+
+      <label for="f-hrms">HRMS ID</label>
+      <input type="text" id="f-hrms" required>
+
+      <label for="f-pf">PF No.</label>
+      <input type="text" id="f-pf" required>
+      <div class="hint">Used to confirm it's genuinely you on any future submission — must stay consistent each time.</div>
+
+      <label for="f-designation">Designation</label>
+      <select id="f-designation" onchange="onDesignationChange()">
+        <option value="PMAN">Pointsman</option>
+        <option value="Sr. P/man">Sr. Pointsman</option>
+        <option value="SS">Station Superintendent (SS)</option>
+        <option value="CYM">Chief Yard Master (CYM)</option>
+        <option value="TI">Traffic Inspector (TI)</option>
+        <option value="SM">Station Master (SM)</option>
+        <option value="YM">Yard Master (YM)</option>
+        <option value="CHC">Chief Controller (CHC)</option>
+        <option value="SCNL">Sectional Controller (SCNL)</option>
+        <option value="MTM">Mail Express Train Manager (MTM)</option>
+        <option value="SPTM">Sr. Passenger Train Manager (SPTM)</option>
+        <option value="SGTM">Sr. Goods Train Manager (SGTM)</option>
+        <option value="GTM">Goods Train Manager (GTM)</option>
+        <option value="Shunting Master">Shunting Master</option>
+        <option value="Cabinman">Cabinman</option>
+        <option value="Sr. Cabinman">Sr. Cabinman</option>
+        <option value="Gateman">Gateman</option>
+        <option value="WMI">Wagon Movement Inspector (WMI)</option>
+        <option value="CWMI">Chief Wagon Movement Inspector (CWMI)</option>
+        <option value="COS">Chief Office Superintendent (COS)</option>
+        <option value="OS">Office Superintendent (OS)</option>
+        <option value="Sr. Clerk">Sr. Clerk</option>
+        <option value="Jr. Clerk">Jr. Clerk</option>
+        <option value="CTNC">Chief Trains Clerk (CTNC)</option>
+        <option value="STNC">Sr. Trains Clerk (STNC)</option>
+        <option value="TNC">Trains Clerk (TNC)</option>
+        <option value="TADK">Telephone Attendant Dak Khalasi (TADK)</option>
+        <option value="GA">General Assistant (GA)</option>
+      </select>
+
+      <div id="gateman-fit-block" class="hidden">
+        <label>Are you medically fit for Pointsman duties?</label>
+        <div class="radio-row">
+          <label><input type="radio" name="f-gateman-fit" value="Yes" onchange="refreshAllPrefPriorities()"> Yes</label>
+          <label><input type="radio" name="f-gateman-fit" value="No" onchange="refreshAllPrefPriorities()"> No</label>
+        </div>
+        <div class="hint">This decides which priority queue your application counts toward — pooled with Pointsman/Sr. Pointsman, or the separate Gateman (not medically fit) queue.</div>
+      </div>
+
+      <label for="f-current-station">Current Place of Posting</label>
+      <input type="text" id="f-current-station" list="station-list" required>
+
+      <label for="f-current-from">Date of Resumption</label>
+      <input type="date" id="f-current-from" required onchange="updateTimeSincePosting()">
+      <div class="hint" id="time-since-posting-hint"></div>
+
+      <label for="f-posting-order-date">Date of Posting Order &amp; P.Branch Letter No.</label>
+      <input type="text" id="f-posting-order-date" placeholder="e.g. 12.05.2023, Letter No. ABC/2023/456" required>
+      <div class="hint">Enter the date and the P.Branch letter number together, in your own format. Used to confirm it's genuinely you on any future submission — must be entered exactly the same way each time.</div>
+
+      <label>Previous Postings (since joining)</label>
+      <div class="hint">Add every station you've served at before your current posting, in order. Click "+ Add Previous Posting" for each one.</div>
+      <div id="previous-postings-container"></div>
+      <button type="button" class="btn btn-text" style="padding-left:0;margin-top:8px;" onclick="addPreviousPostingRow()">+ Add Previous Posting</button>
+
+      <label for="f-pref1">Priority Station 1 (1st preference)</label>
+      <input type="text" id="f-pref1" list="station-list" required onchange="handlePrefStationChange(1)">
+      <div class="hint" id="f-pref1-priority"></div>
+
+      <label for="f-pref2">Priority Station 2 (optional)</label>
+      <input type="text" id="f-pref2" list="station-list" onchange="handlePrefStationChange(2)">
+      <div class="hint" id="f-pref2-priority"></div>
+
+      <label for="f-pref3">Priority Station 3 (optional)</label>
+      <input type="text" id="f-pref3" list="station-list" onchange="handlePrefStationChange(3)">
+      <div class="hint" id="f-pref3-priority"></div>
+
+      <datalist id="station-list"></datalist>
+
+      <label for="f-last-transfer">Last Transfer (Own Request / Administrative Interest)</label>
+      <input type="text" id="f-last-transfer" placeholder="e.g. Own request, transferred to DLI in 2019">
+      <div class="hint">Optional — briefly note your most recent transfer, if any, and whether it was on your own request or an administrative posting.</div>
+
+      <label>Is this application forwarded through proper authority?</label>
+      <div class="radio-row">
+        <label><input type="radio" name="f-authority" value="Yes" onchange="onAuthorityChange()"> Yes</label>
+        <label><input type="radio" name="f-authority" value="No" onchange="onAuthorityChange()"> No</label>
+      </div>
+
+      <div id="upload-block" class="hidden">
+        <label for="f-document">Upload signed application (PDF or JPG) <span style="color:var(--bad);font-weight:700;">*</span></label>
+        <input type="file" id="f-document" accept=".pdf,.jpg,.jpeg">
+      </div>
+
+      <div id="new-msg"></div>
+
+      <div class="actions">
+        <button class="btn btn-primary" onclick="handleSubmit()">Submit Priority Application</button>
+        <button class="btn btn-text" onclick="showView('landing')">Back</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHECK STATUS -->
+  <section id="view-status" class="hidden">
+    <div class="card">
+      <h2>Check Priority Status</h2>
+      <label for="s-hrms">Enter your HRMS ID</label>
+      <input type="text" id="s-hrms" required>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="handleCheckStatus()">Check Status</button>
+        <button class="btn btn-text" onclick="showView('landing')">Back</button>
+      </div>
+      <div id="status-result"></div>
+      <div id="resubmit-block" class="hidden">
+        <label for="s-document">Upload corrected signed document (PDF or JPG)</label>
+        <input type="file" id="s-document" accept=".pdf,.jpg,.jpeg">
+        <div class="actions">
+          <button class="btn btn-primary" onclick="handleResubmit()">Resubmit Document</button>
+        </div>
+      </div>
+
+      <!-- MANAGE APPLICATION: change a priority station / withdraw -->
+      <div id="modify-block" class="manage-block hidden">
+        <h3>Manage This Application</h3>
+        <div id="pending-change-banner"></div>
+
+        <div id="change-station-form" class="hidden">
+          <label for="cs-old-station">Station to Replace</label>
+          <select id="cs-old-station"></select>
+
+          <label for="cs-new-station">New Station</label>
+          <input type="text" id="cs-new-station" list="station-list">
+
+          <label for="cs-reference">Reference (Forwarding Letter No. / Date)</label>
+          <input type="text" id="cs-reference" placeholder="e.g. P.Branch Letter No. XYZ/2026/45, dated 31.07.2026">
+
+          <label for="cs-document">Upload signed forwarding letter (PDF or JPG)</label>
+          <input type="file" id="cs-document" accept=".pdf,.jpg,.jpeg">
+
+          <div class="hint">Your other station(s) are not affected. If approved, your new station's priority date will be set to today — you will join that queue as of today, not your original filing date.</div>
+          <div id="change-station-msg"></div>
+          <div class="actions">
+            <button class="btn btn-primary" onclick="handleRequestChange()">Submit Change Request</button>
+            <button class="btn btn-text" onclick="document.getElementById('change-station-form').classList.add('hidden')">Cancel</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-text" id="btn-open-change-form" onclick="openChangeStationForm()">Change a Priority Station</button>
+          <button class="btn btn-reject btn-small" onclick="handleWithdraw()">Withdraw Priority Application</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN / STAFF LOGIN -->
+  <section id="view-admin-login" class="hidden">
+    <div class="card">
+      <h2>Staff / Admin Login</h2>
+      <div id="admin-login-disabled-msg" class="hidden">
+        <p class="hint">Staff/Admin password login is temporarily disabled for internal testing. It will be re-enabled at go-live.</p>
+        <div class="actions">
+          <button class="btn btn-text" onclick="showView('landing')">Back</button>
+        </div>
+      </div>
+      <div id="admin-login-form-fields">
+        <label for="a-hrms">HRMS ID</label>
+        <input type="text" id="a-hrms">
+        <label for="a-password">Password</label>
+        <input type="text" id="a-password" style="-webkit-text-security: disc;">
+        <div id="admin-login-msg"></div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="handleAdminLogin()">Log In</button>
+          <button class="btn btn-text" onclick="showView('landing')">Back</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN DASHBOARD -->
+  <section id="view-admin-dashboard" class="hidden">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h2>Dashboard</h2>
+        <button class="btn btn-text" onclick="handleAdminLogout()">Log Out</button>
+      </div>
+      <div id="admin-kpi-content"></div>
+    </div>
+
+    <div class="card">
+      <h2>Priority Board</h2>
+      <p class="hint">Click the post(s) and station(s) you want, and the board below shows Approved (A) / Pending (P) counts for exactly that selection.</p>
+
+      <p class="board-subhead">Posts</p>
+      <div class="board-chip-row" id="board-post-chips"><div class="spinner">Loading…</div></div>
+
+      <p class="board-subhead">Major Stations</p>
+      <div class="board-chip-row" id="board-station-chips"></div>
+
+      <div class="board-search">
+        <input type="text" id="board-station-search" list="station-list" placeholder="Search any other station…">
+        <button class="btn btn-text" onclick="handleAddBoardStation()">Add</button>
+      </div>
+
+      <div id="priority-board-content"></div>
+    </div>
+
+    <div class="card">
+      <h2>Pending Station Change Requests</h2>
+      <p class="hint">Applicant-requested swaps of one priority station for another. Approving locks in the new station's queue position as of the date the applicant requested it — their other station(s) are untouched either way.</p>
+      <div id="pending-changes-content"><div class="spinner">Loading…</div></div>
+    </div>
+
+    <div class="card" id="report-card" style="display:none;">
+      <h2>Download Activity Report</h2>
+      <p class="hint">Admin-only. One row per approve/reject decision, for physical filing — applicant details, request date, and who decided it. Pick the same date in both fields for a single day's report.</p>
+      <div class="report-dates">
+        <div>
+          <label for="report-from">From</label>
+          <input type="date" id="report-from">
+        </div>
+        <div>
+          <label for="report-to">To</label>
+          <input type="date" id="report-to">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="handleDownloadReport()">Download CSV</button>
+      </div>
+      <div id="report-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Delete Test Application</h2>
+      <p class="hint" style="color:var(--bad);">Testing phase only — permanently deletes a record by Priority No. This cannot be undone from here, though a full snapshot is kept in the Audit Log. Use only to remove dummy/test entries.</p>
+      <label for="del-app-id">Priority No. (App ID)</label>
+      <input type="text" id="del-app-id" placeholder="e.g. PMAN-000012">
+      <div class="actions">
+        <button class="btn btn-reject" onclick="handleDeleteApplication()">Delete Permanently</button>
+      </div>
+      <div id="delete-msg"></div>
+    </div>
+  </section>
+
+  <!-- OFFICERS LOGIN -->
+  <section id="view-officer-login" class="hidden">
+    <div class="card">
+      <h2>Officers Login</h2>
+      <p class="hint">For officers who need the latest real priority number for any station, at a glance.</p>
+      <label for="o-hrms">HRMS ID</label>
+      <input type="text" id="o-hrms">
+      <label for="o-password">Password</label>
+      <input type="text" id="o-password" style="-webkit-text-security: disc;">
+      <div id="officer-login-msg"></div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="handleOfficerLogin()">Log In</button>
+        <button class="btn btn-text" onclick="showView('landing')">Back</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- OFFICERS DASHBOARD -->
+  <section id="view-officer-dashboard" class="hidden">
+    <div class="officer-dash">
+      <div class="officer-dash-hero">
+        <div class="officer-dash-hero-inner">
+          <div>
+            <h2>Officers Priority Dashboard</h2>
+            <p>Live priority numbers across every post and station — updated the moment an admin approves a digital application.</p>
+          </div>
+          <button class="btn-officer-logout" onclick="handleOfficerLogout()">Log Out</button>
+        </div>
+      </div>
+      <div class="officer-dash-body">
+
+        <div class="officer-panel">
+          <p class="officer-panel-label">DIVISION SUMMARY<span class="officer-summary-live-dot" title="Auto-refreshes every 15 minutes"></span></p>
+          <div class="officer-summary-tiles" id="officer-summary-tiles"></div>
+          <p class="officer-summary-updated" id="officer-summary-updated"></p>
+          <div class="officer-search-row officer-summary-search-row">
+            <select id="officer-summary-post-select"></select>
+            <button onclick="handleOfficerSummaryAddPost()">Add</button>
+          </div>
+        </div>
+
+        <div class="officer-panel">
+          <p class="officer-panel-label">TOP 5 STATIONS <span class="officer-summary-live-dot" title="Auto-refreshes every 15 minutes"></span></p>
+          <p class="hint" style="margin: -4px 0 14px;">Click a tile above to see its top 5 stations here.</p>
+          <div id="officer-summary-chart"></div>
+        </div>
+
+        <div class="officer-mode-toggle">
+          <button class="officer-mode-btn active" id="officer-mode-btn-station" onclick="switchOfficerMode('station')">View by Station</button>
+          <button class="officer-mode-btn" id="officer-mode-btn-post" onclick="switchOfficerMode('post')">View by Post</button>
+        </div>
+
+        <!-- Shown only in "View by Post" mode -->
+        <div class="officer-panel hidden" id="officer-post-panel">
+          <p class="officer-panel-label">POST</p>
+          <div class="officer-chip-row" id="officer-post-chips"></div>
+          <div class="officer-search-row">
+            <input type="text" id="officer-post-search" placeholder="Search other posts (e.g. WMI, TI, Cabinman)…">
+            <button onclick="handleOfficerPostSearch()">Add</button>
+          </div>
+        </div>
+
+        <div class="officer-panel">
+          <p class="officer-panel-label" id="officer-station-panel-label">STATIONS</p>
+          <div class="officer-station-matrix" id="officer-station-matrix"></div>
+          <div class="officer-search-row">
+            <input type="text" id="officer-station-search" list="station-list" placeholder="Search other station…">
+            <button onclick="handleOfficerStationSearch()">Go</button>
+          </div>
+        </div>
+
+        <div class="officer-panel officer-results-panel" id="officer-results-panel">
+          <p class="hint">Click a station above (or search for one) to see live priority numbers for every post.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div id="overlay" class="hidden" onclick="if (event.target === this) hideOverlay();">
+  <div class="card">
+    <div id="overlay-content"></div>
+  </div>
+</div>
+
+<script>
+// ============ CONFIG ============
+// Replace this with your Apps Script Web App /exec URL after deploying Code.gs
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHf7GIu51J9kePozaXpFEXnyKjHTkWd7W69pwnZeA41yOwCcEFj2ImUHg-eclLYnRPsg/exec";
+
+const STATIONS = ["ABO","AMN","ANDI","ANVT","ASE","AST","BBDE","BDMJ","BGZ","BHD","BHMW","BHUL","BLZ","BMHR","BPM","BRSQ","BRZ","BSPH","BTU","BVH","BWSN","BZJT","BZK","BZO","CNL","CYZ","DBD","DBSI","DEC","DEE","DGHL","DHKR","DHY","DHZM","DKZ","DLI","DOBH BAHALI","DPP","DRLA","DSA","DSJ","DTN","DWNA","FDB","FDN","FN","GGN","GHE","GHH","GHNA","GKG","GNU","GRA","GSO","GUH","GZB","HIND","HMQ","HNZM","HUK","IHP","JCY","JDW","JHI","JHJ","JHL","JJT","JNA","JNC","JSKA","KAT","KEX","KHV","KIP","KIU","KIY","KKDE","KLE","KPKI","KQL","KRZ","KTF","KUN","KURN","KZH","KZW","LPNR","MAUR","MDLA","MDNR","MHRI","MLDE","MNZ","MOHR","MOKHRA MADINA","MOY","MOZ","MSP","MSZ","MTC","MUD","MUNDHAL KALAN","MUT","MUZ","NDLS","NGL","NLH","NLKR","NNO","NNX","NOLI","NPX","NRW","NUR","OKA","PHWR","PKDE","PLHW","PM","PNP","PPDE","PQY","PRTP","PT","PTNR1","PTNR2","PTRD","PWL","PYLA","RDDE","RNA","ROK","RPMN","RUG","SBB","SFDE","SHDM","SKF","SLKN","SMF","SMK","SMQL","SNP","SPZ","SSB","SSZ","SZM","THBN","THJ","TI","TKD","TKJ","TPZ","TRR","TUN","UCA"];
+
+document.addEventListener('DOMContentLoaded', function () {
+  const dl = document.getElementById('station-list');
+  STATIONS.forEach(function (s) {
+    const opt = document.createElement('option');
+    opt.value = s;
+    dl.appendChild(opt);
+  });
+  updateClock();
+  showView('landing');
+});
+
+function showView(name) {
+  ['landing', 'new', 'status', 'admin-login', 'admin-dashboard', 'officer-login', 'officer-dashboard'].forEach(function (v) {
+    document.getElementById('view-' + v).classList.toggle('hidden', v !== name);
+  });
+  document.querySelector('main').classList.toggle('landing-wide', name === 'landing' || name === 'officer-dashboard');
+  document.querySelectorAll('.tab-link').forEach(function (t) {
+    t.classList.toggle('active', t.dataset.tab === name);
+  });
+  if (name === 'admin-login') {
+    checkAdminLoginAvailability();
+  }
+  if (name === 'officer-dashboard') {
+    initOfficerDashboard();
+  }
+  if (name === 'admin-dashboard') {
+    loadDashboardStats();
+    loadPriorityBoard();
+    loadPendingChanges();
+    const isAdmin = sessionStorage.getItem('adminRole') === 'Admin';
+    const reportCard = document.getElementById('report-card');
+    reportCard.style.display = isAdmin ? '' : 'none';
+    if (isAdmin) {
+      const today = new Date().toISOString().slice(0, 10);
+      if (!document.getElementById('report-from').value) document.getElementById('report-from').value = today;
+      if (!document.getElementById('report-to').value) document.getElementById('report-to').value = today;
+    }
+  }
+}
+
+function updateClock() {
+  const el = document.getElementById('live-clock');
+  if (!el) return;
+  const now = new Date();
+  const pad = function (n) { return n.toString().padStart(2, '0'); };
+  el.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+}
+setInterval(updateClock, 1000);
+
+async function checkAdminLoginAvailability() {
+  const formFields = document.getElementById('admin-login-form-fields');
+  const disabledMsg = document.getElementById('admin-login-disabled-msg');
+  try {
+    const url = APPS_SCRIPT_URL + '?action=getLoginConfig';
+    const res = await fetch(url).then(function (r) { return r.json(); });
+    if (res.ok && res.passwordlessLoginEnabled) {
+      formFields.classList.add('hidden');
+      disabledMsg.classList.remove('hidden');
+    } else {
+      formFields.classList.remove('hidden');
+      disabledMsg.classList.add('hidden');
+    }
+  } catch (err) {
+    // If the check itself fails (network hiccup, etc.), fail safe by
+    // showing the normal login form — never silently lock staff out.
+    formFields.classList.remove('hidden');
+    disabledMsg.classList.add('hidden');
+  }
+}
+
+function onAuthorityChange() {
+  const val = document.querySelector('input[name="f-authority"]:checked').value;
+  const uploadBlock = document.getElementById('upload-block');
+  if (val === 'No') {
+    alert('This application cannot be submitted without forwarding through the proper authority. Please obtain approval before proceeding.');
+    uploadBlock.classList.add('hidden');
+  } else {
+    uploadBlock.classList.remove('hidden');
+  }
+}
+
+function onDesignationChange() {
+  const val = document.getElementById('f-designation').value.trim().toUpperCase();
+  const block = document.getElementById('gateman-fit-block');
+  if (val === 'GATEMAN') {
+    block.classList.remove('hidden');
+  } else {
+    block.classList.add('hidden');
+    document.querySelectorAll('input[name="f-gateman-fit"]').forEach(function (r) { r.checked = false; });
+  }
+  refreshAllPrefPriorities();
+}
+
+// Live "last priority number" lookup shown under each preference-station
+// field on the New Application form. Public endpoint, no login — see
+// getPublicPriorityAtStation in Code.gs. Fires when a preference station is
+// entered/changed, and is re-run for all three whenever the designation or
+// gateman-fit answer changes (since those decide which queue applies).
+async function handlePrefStationChange(prefNum) {
+  const stationInput = document.getElementById('f-pref' + prefNum);
+  const hintEl = document.getElementById('f-pref' + prefNum + '-priority');
+  const station = stationInput.value.trim();
+  if (!station) { hintEl.textContent = ''; return; }
+
+  const designation = document.getElementById('f-designation').value;
+  if (!designation) { hintEl.textContent = 'Select your designation above to see the current priority number.'; return; }
+
+  const gatemanFitEl = document.querySelector('input[name="f-gateman-fit"]:checked');
+  if (designation.trim().toUpperCase() === 'GATEMAN' && !gatemanFitEl) {
+    hintEl.textContent = 'Answer the medical fitness question above to see the current priority number.';
+    return;
+  }
+  const gatemanFit = gatemanFitEl ? gatemanFitEl.value : '';
+
+  hintEl.textContent = 'Checking current priority number…';
+  try {
+    const url = APPS_SCRIPT_URL + '?action=getPublicPriorityAtStation' +
+      '&designation=' + encodeURIComponent(designation) +
+      '&gatemanFit=' + encodeURIComponent(gatemanFit) +
+      '&station=' + encodeURIComponent(station);
+    const res = await fetch(url).then(function (r) { return r.json(); });
+    if (!res.ok) { hintEl.textContent = res.error || 'Could not fetch the current priority number.'; return; }
+    hintEl.textContent = 'Current last priority number at ' + res.station + ': ' + res.count +
+      '. Yours would tentatively be No. ' + (res.count + 1) + ' if approved.';
+  } catch (err) {
+    hintEl.textContent = 'Could not fetch the current priority number right now.';
+  }
+}
+
+function refreshAllPrefPriorities() {
+  handlePrefStationChange(1);
+  handlePrefStationChange(2);
+  handlePrefStationChange(3);
+}
+
+function showOverlay(html, wide) {
+  document.getElementById('overlay-content').innerHTML = html;
+  document.querySelector('#overlay .card').classList.toggle('wide', !!wide);
+  document.getElementById('overlay').classList.remove('hidden');
+}
+function hideOverlay() {
+  document.getElementById('overlay').classList.add('hidden');
+}
+
+function fileToBase64(file) {
+  return new Promise(function (resolve, reject) {
+    const reader = new FileReader();
+    reader.onload = function () { resolve(reader.result.split(',')[1]); };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function callBackend(payload) {
+  return fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
+    body: JSON.stringify(payload)
+  }).then(function (r) { return r.json(); });
+}
+
+var postingRowSeq = 0;
+
+function addPreviousPostingRow(prefill) {
+  postingRowSeq++;
+  var idx = postingRowSeq;
+  var container = document.getElementById('previous-postings-container');
+  var row = document.createElement('div');
+  row.className = 'posting-row';
+  row.dataset.rowId = idx;
+  row.innerHTML =
+    '<div class="posting-row-head"><span>Previous Posting</span>' +
+    '<button type="button" class="remove-posting" onclick="removePostingRow(this)">Remove</button></div>' +
+    '<div class="posting-row-fields">' +
+      '<div><label>Station</label><input type="text" class="prev-station" list="station-list"></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+        '<div><label>From</label><input type="date" class="prev-from"></div>' +
+        '<div><label>Till</label><input type="date" class="prev-till"></div>' +
+      '</div>' +
+    '</div>';
+  container.appendChild(row);
+}
+
+function removePostingRow(btn) {
+  btn.closest('.posting-row').remove();
+}
+
+function readPreviousPostings() {
+  var rows = document.querySelectorAll('#previous-postings-container .posting-row');
+  var out = [];
+  rows.forEach(function (row) {
+    var station = row.querySelector('.prev-station').value.trim();
+    var from = row.querySelector('.prev-from').value;
+    var till = row.querySelector('.prev-till').value;
+    if (station || from || till) out.push({ station: station, from: from, till: till });
+  });
+  return out;
+}
+
+function readForm() {
+  const authorityEl = document.querySelector('input[name="f-authority"]:checked');
+  const gatemanFitEl = document.querySelector('input[name="f-gateman-fit"]:checked');
+  return {
+    name: document.getElementById('f-name').value.trim(),
+    fatherName: document.getElementById('f-father').value.trim(),
+    phone: document.getElementById('f-phone').value.trim(),
+    hrmsId: document.getElementById('f-hrms').value.trim(),
+    pfNo: document.getElementById('f-pf').value.trim(),
+    designation: document.getElementById('f-designation').value,
+    gatemanFit: gatemanFitEl ? gatemanFitEl.value : '',
+    currentStation: document.getElementById('f-current-station').value.trim(),
+    timeSincePosting: computeTimeSincePosting(document.getElementById('f-current-from').value),
+    currentPostingFrom: document.getElementById('f-current-from').value,
+    postingOrderDate: document.getElementById('f-posting-order-date').value,
+    previousPostings: readPreviousPostings(),
+    lastTransfer: document.getElementById('f-last-transfer').value.trim(),
+    pref1: document.getElementById('f-pref1').value.trim(),
+    pref2: document.getElementById('f-pref2').value.trim(),
+    pref3: document.getElementById('f-pref3').value.trim(),
+    forwardedAuthority: authorityEl ? authorityEl.value : ''
+  };
+}
+
+function computeTimeSincePosting(fromDateStr) {
+  if (!fromDateStr) return '';
+  var from = new Date(fromDateStr + 'T00:00:00');
+  var now = new Date();
+  if (isNaN(from.getTime()) || from > now) return '';
+
+  var totalDays = Math.floor((now - from) / (1000 * 60 * 60 * 24));
+
+  var years = now.getFullYear() - from.getFullYear();
+  var months = now.getMonth() - from.getMonth();
+  var days = now.getDate() - from.getDate();
+  if (days < 0) {
+    months--;
+    var prevMonthLastDay = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    days += prevMonthLastDay;
+  }
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+
+  var parts = [];
+  if (years > 0) parts.push(years + (years === 1 ? ' year' : ' years'));
+  if (months > 0) parts.push(months + (months === 1 ? ' month' : ' months'));
+  if (years === 0 && months === 0) parts.push(days + (days === 1 ? ' day' : ' days'));
+
+  return parts.join(', ') + ' (' + totalDays + (totalDays === 1 ? ' day total' : ' days total') + ')';
+}
+
+function updateTimeSincePosting() {
+  const fromVal = document.getElementById('f-current-from').value;
+  const hint = document.getElementById('time-since-posting-hint');
+  const computed = computeTimeSincePosting(fromVal);
+  if (!fromVal) {
+    hint.textContent = '';
+  } else if (!computed) {
+    hint.textContent = 'This date cannot be in the future.';
+  } else {
+    hint.textContent = 'Time since current posting: ' + computed + ' (calculated automatically)';
+  }
+}
+
+function showMsg(elId, text, type) {
+  document.getElementById(elId).innerHTML = '<div class="msg ' + type + '">' + text + '</div>';
+}
+
+async function handleSubmit() {
+  const form = readForm();
+  if (!form.name || !form.hrmsId || !form.pfNo || !form.postingOrderDate || !form.pref1 || !form.forwardedAuthority) {
+    showMsg('new-msg', 'Please fill in all required fields.', 'error');
+    return;
+  }
+  if (form.forwardedAuthority !== 'Yes') {
+    showMsg('new-msg', 'Cannot submit without proper approval.', 'error');
+    return;
+  }
+  if (form.designation.trim().toUpperCase() === 'GATEMAN' && !form.gatemanFit) {
+    showMsg('new-msg', 'Please answer whether you are medically fit for Pointsman duties.', 'error');
+    return;
+  }
+  const fileInput = document.getElementById('f-document');
+  if (!fileInput.files || !fileInput.files[0]) {
+    showMsg('new-msg', 'Please upload your signed application document — this is mandatory.', 'error');
+    return;
+  }
+
+  showOverlay('<div class="spinner">Checking existing applications…</div>');
+  try {
+    const dup = await callBackend(Object.assign({ action: 'checkDuplicate' }, form));
+    hideOverlay();
+
+    if (dup.transferLocked) {
+      showMsg('new-msg', dup.error, 'error');
+      return;
+    }
+    if (dup.duplicate && dup.samePreferences) {
+      showMsg('new-msg', 'You already have an active priority application in queue (Priority No. ' + dup.existingAppId + ').', 'error');
+      return;
+    }
+    if (dup.duplicate && !dup.samePreferences) {
+      const proceed = confirm(
+        'You already have an active priority (No. ' + dup.existingAppId + ') with different station preferences.\n\n' +
+        'Continuing will change your priority date to today, and you will move lower in the priority order for the new stations.\n\n' +
+        'Continue?'
+      );
+      if (!proceed) return;
+      await finalizeSubmit(form, true);
+    } else {
+      await finalizeSubmit(form, false);
+    }
+  } catch (err) {
+    hideOverlay();
+    showMsg('new-msg', 'Something went wrong: ' + err.message, 'error');
+  }
+}
+
+async function finalizeSubmit(form, confirmSupersede) {
+  showOverlay('<div class="spinner">Submitting your priority application…</div>');
+  const fileInput = document.getElementById('f-document');
+  const payload = Object.assign({ action: 'submitApplication', confirmSupersede: confirmSupersede }, form);
+
+  if (fileInput.files && fileInput.files[0]) {
+    const file = fileInput.files[0];
+    payload.documentBase64 = await fileToBase64(file);
+    payload.documentName = file.name;
+    payload.documentMime = file.type;
+  }
+
+  const result = await callBackend(payload);
+  hideOverlay();
+
+  if (!result.ok) {
+    showMsg('new-msg', result.error || 'Submission failed.', 'error');
+    return;
+  }
+  var rankLines = Object.keys(result.ranks || {}).map(function (k) {
+    var r = result.ranks[k];
+    return r.station + ': Priority Number ' + r.rank;
+  }).join('\n');
+  var tentativeLines = '';
+  if (result.officerTentative && Object.keys(result.officerTentative).length) {
+    tentativeLines = '\n\nTentative Priority Number (based on current officer records, subject to admin approval):\n' +
+      Object.keys(result.officerTentative).map(function (k) {
+        var r = result.officerTentative[k];
+        return r.station + ': ' + r.tentative;
+      }).join('\n');
+  }
+  alert(
+    'Application submitted and sent for admin verification.\n\n' +
+    'Your Priority No. is ' + result.appId + '.\n' +
+    'Your submission time is locked in, but your official priority number is confirmed once an admin approves your document.\n\n' +
+    rankLines + tentativeLines
+  );
+  resetNewPriorityForm();
+  showView('landing');
+}
+
+function resetNewPriorityForm() {
+  const section = document.getElementById('view-new');
+  section.querySelectorAll('input[type="text"], input[type="tel"], input[type="date"], input[type="file"]').forEach(function (el) { el.value = ''; });
+  section.querySelectorAll('input[type="radio"]').forEach(function (el) { el.checked = false; });
+  document.getElementById('time-since-posting-hint').textContent = '';
+  document.getElementById('previous-postings-container').innerHTML = '';
+  document.getElementById('upload-block').classList.add('hidden');
+  document.getElementById('gateman-fit-block').classList.add('hidden');
+  document.getElementById('new-msg').innerHTML = '';
+}
+
+async function handleCheckStatus() {
+  const hrmsId = document.getElementById('s-hrms').value.trim();
+  const resultDiv = document.getElementById('status-result');
+  if (!hrmsId) {
+    resultDiv.innerHTML = '<div class="msg error">Please enter your HRMS ID.</div>';
+    return;
+  }
+  resultDiv.innerHTML = '<div class="spinner">Looking up your application…</div>';
+  try {
+    const url = APPS_SCRIPT_URL + '?action=checkStatus&hrmsId=' + encodeURIComponent(hrmsId);
+    const res = await fetch(url).then(function (r) { return r.json(); });
+
+    if (!res.ok) {
+      resultDiv.innerHTML = '<div class="msg error">' + (res.error || 'Lookup failed.') + '</div>';
+      return;
+    }
+    if (res.found) {
+      var badgeClass = res.status === 'Active' || res.status === 'Expiring Soon' ? 'active'
+        : res.status === 'Rejected - Resubmission Needed' ? 'rejected' : 'pending';
+      var rows = Object.keys(res.ranks).map(function (k) {
+        var r = res.ranks[k];
+        return '<tr><td>' + r.station + '</td><td>Priority Number ' + r.rank + '</td></tr>';
+      }).join('');
+      var statusLine = '<span class="badge ' + badgeClass + '">' + res.status + '</span>';
+      var extra = '';
+      if (res.status === 'Pending Verification') {
+        extra = '<p class="hint">Awaiting admin verification. The priority number shown below is provisional — it becomes official once your document is approved. Your submission time is locked, and you\'ll rank above anyone who submits later.</p>';
+      } else if (res.status === 'Rejected - Resubmission Needed') {
+        extra = '<p class="hint" style="color:var(--bad)">Reason: ' + (res.rejectionReason || 'Document could not be verified.') + '</p>';
+      }
+      var postingHistoryLine = 'Current: ' + (res.currentStation || '—') + ' (since ' + (res.currentPostingFrom || '—') + ')';
+      if (res.previousPostings && res.previousPostings.length) {
+        postingHistoryLine += ' · Previous: ' + res.previousPostings.map(function (pp) {
+          return pp.station + ' (' + (pp.from || '—') + ' to ' + (pp.till || '—') + ')';
+        }).join(', ');
+      }
+      resultDiv.innerHTML =
+        '<div class="msg success">Priority No. ' + res.appId + ' &nbsp; ' + statusLine + '</div>' +
+        '<p class="hint">Designation: <b>' + (res.designationLabel || res.designation || '—') + '</b></p>' +
+        extra +
+        '<table class="rank-table"><thead><tr><th>Station</th><th>Your Priority Number</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<p class="hint">' + postingHistoryLine + '</p>' +
+        '<p class="hint">Filed on ' + new Date(res.filingDate).toDateString() + ' · Valid until ' + new Date(res.validityEndDate).toDateString() + '</p>';
+
+      if (res.status === 'Pending Verification' && res.officerTentative && Object.keys(res.officerTentative).length) {
+        var tentativeRows = Object.keys(res.officerTentative).map(function (k) {
+          var r = res.officerTentative[k];
+          return '<tr><td>' + r.station + '</td><td>' + r.tentative + '</td></tr>';
+        }).join('');
+        resultDiv.innerHTML += '<p class="hint" style="margin-top:14px;"><b>Tentative Priority Number</b> (based on current officer records + other pending applications — becomes official on admin approval):</p>' +
+          '<table class="rank-table"><thead><tr><th>Station</th><th>Tentative Priority Number</th></tr></thead><tbody>' + tentativeRows + '</tbody></table>';
+      }
+
+      const resubmitBlock = document.getElementById('resubmit-block');
+      if (res.canResubmit) {
+        resubmitBlock.classList.remove('hidden');
+        resubmitBlock.dataset.appId = res.appId;
+        resubmitBlock.dataset.hrmsId = hrmsId;
+      } else {
+        resubmitBlock.classList.add('hidden');
+      }
+
+      // Manage-application block: change station / withdraw
+      window.__currentAppId = res.appId;
+      window.__currentPrefs = res.preferences || [];
+      const modifyBlock = document.getElementById('modify-block');
+      const banner = document.getElementById('pending-change-banner');
+      const openBtn = document.getElementById('btn-open-change-form');
+      document.getElementById('change-station-form').classList.add('hidden');
+      document.getElementById('change-station-msg').innerHTML = '';
+      if (res.canModify) {
+        modifyBlock.classList.remove('hidden');
+        if (res.pendingChange) {
+          banner.innerHTML = '<div class="change-banner">Station change request pending admin approval: <b>' +
+            res.pendingChange.oldStation + ' &rarr; ' + res.pendingChange.newStation + '</b> (requested ' +
+            new Date(res.pendingChange.requestedDate).toDateString() + ').</div>';
+          openBtn.classList.add('hidden');
+        } else {
+          banner.innerHTML = '';
+          openBtn.classList.remove('hidden');
+        }
+      } else {
+        modifyBlock.classList.add('hidden');
+      }
+    } else if (res.archivedInfo) {
+      resultDiv.innerHTML = '<div class="msg error">No active application. Last record: ' + res.archivedInfo.appId + ' — ' + res.archivedInfo.status + (res.archivedInfo.reason ? (' (' + res.archivedInfo.reason + ')') : '') + '</div>';
+      document.getElementById('resubmit-block').classList.add('hidden');
+      document.getElementById('modify-block').classList.add('hidden');
+    } else {
+      resultDiv.innerHTML = '<div class="msg error">No priority application found for this HRMS ID.</div>';
+      document.getElementById('resubmit-block').classList.add('hidden');
+      document.getElementById('modify-block').classList.add('hidden');
+    }
+  } catch (err) {
+    resultDiv.innerHTML = '<div class="msg error">Something went wrong: ' + err.message + '</div>';
+    document.getElementById('resubmit-block').classList.add('hidden');
+    document.getElementById('modify-block').classList.add('hidden');
+  }
+}
+
+async function handleResubmit() {
+  const block = document.getElementById('resubmit-block');
+  const fileInput = document.getElementById('s-document');
+  if (!fileInput.files || !fileInput.files[0]) {
+    alert('Please choose a file to upload.');
+    return;
+  }
+  showOverlay('<div class="spinner">Uploading corrected document…</div>');
+  try {
+    const file = fileInput.files[0];
+    const payload = {
+      action: 'resubmitDocument',
+      appId: block.dataset.appId,
+      hrmsId: block.dataset.hrmsId,
+      documentBase64: await fileToBase64(file),
+      documentName: file.name,
+      documentMime: file.type
+    };
+    const result = await callBackend(payload);
+    hideOverlay();
+    if (!result.ok) {
+      alert(result.error || 'Resubmission failed.');
+      return;
+    }
+    alert('Document resubmitted. It is now back in the admin verification queue.');
+    handleCheckStatus();
+  } catch (err) {
+    hideOverlay();
+    alert('Something went wrong: ' + err.message);
+  }
+}
+
+// ---------- MANAGE APPLICATION: CHANGE STATION / WITHDRAW ----------
+function openChangeStationForm() {
+  const sel = document.getElementById('cs-old-station');
+  sel.innerHTML = (window.__currentPrefs || []).map(function (p) {
+    return '<option value="' + p + '">' + p + '</option>';
+  }).join('');
+  document.getElementById('change-station-msg').innerHTML = '';
+  document.getElementById('change-station-form').classList.remove('hidden');
+}
+
+async function handleRequestChange() {
+  const oldStation = document.getElementById('cs-old-station').value;
+  const newStation = document.getElementById('cs-new-station').value.trim();
+  const reference = document.getElementById('cs-reference').value.trim();
+  const fileInput = document.getElementById('cs-document');
+  const msgEl = document.getElementById('change-station-msg');
+
+  if (!oldStation || !newStation || !reference) {
+    msgEl.innerHTML = '<div class="msg error">Please fill in the station to replace, the new station, and a reference.</div>';
+    return;
+  }
+  if (!fileInput.files || !fileInput.files[0]) {
+    msgEl.innerHTML = '<div class="msg error">Please upload the signed forwarding letter for this change.</div>';
+    return;
+  }
+
+  const hrmsId = document.getElementById('s-hrms').value.trim();
+  const appId = window.__currentAppId;
+  msgEl.innerHTML = '<div class="spinner">Submitting change request…</div>';
+  try {
+    const file = fileInput.files[0];
+    const payload = {
+      action: 'requestPreferenceChange', hrmsId: hrmsId, appId: appId,
+      oldStation: oldStation, newStation: newStation, reference: reference,
+      documentBase64: await fileToBase64(file), documentName: file.name, documentMime: file.type
+    };
+    const result = await callBackend(payload);
+    if (!result.ok) {
+      msgEl.innerHTML = '<div class="msg error">' + (result.error || 'Request failed.') + '</div>';
+      return;
+    }
+    msgEl.innerHTML = '<div class="msg success">Station change request submitted for admin approval.</div>';
+    document.getElementById('change-station-form').classList.add('hidden');
+    handleCheckStatus();
+  } catch (err) {
+    msgEl.innerHTML = '<div class="msg error">Something went wrong: ' + err.message + '</div>';
+  }
+}
+
+async function handleWithdraw() {
+  const hrmsId = document.getElementById('s-hrms').value.trim();
+  const appId = window.__currentAppId;
+  if (!appId) return;
+  var confirmed = confirm(
+    'This will withdraw Priority No. ' + appId + ' completely. ' +
+    'You will lose your place in all of your priority station queues, and this cannot be undone.\n\nContinue?'
+  );
+  if (!confirmed) return;
+
+  showOverlay('<div class="spinner">Withdrawing application…</div>');
+  try {
+    const result = await callBackend({ action: 'withdrawApplication', hrmsId: hrmsId, appId: appId });
+    hideOverlay();
+    if (!result.ok) {
+      alert(result.error || 'Withdrawal failed.');
+      return;
+    }
+    alert('Priority application ' + appId + ' has been withdrawn.');
+    handleCheckStatus();
+  } catch (err) {
+    hideOverlay();
+    alert('Something went wrong: ' + err.message);
+  }
+}
+
+// ---------- ADMIN ----------
+function getAdminToken() { return sessionStorage.getItem('adminToken'); }
+
+async function handleAdminLogin() {
+  const hrmsId = document.getElementById('a-hrms').value.trim();
+  const password = document.getElementById('a-password').value;
+  if (!hrmsId || !password) {
+    showMsg('admin-login-msg', 'Please enter HRMS ID and password.', 'error');
+    return;
+  }
+  showOverlay('<div class="spinner">Logging in…</div>');
+  try {
+    const result = await callBackend({ action: 'adminLogin', hrmsId: hrmsId, password: password });
+    hideOverlay();
+    if (!result.ok) {
+      showMsg('admin-login-msg', result.error || 'Login failed.', 'error');
+      return;
+    }
+    sessionStorage.setItem('adminToken', result.token);
+    sessionStorage.setItem('adminName', result.name);
+    sessionStorage.setItem('adminRole', result.role);
+    showView('admin-dashboard');
+  } catch (err) {
+    hideOverlay();
+    showMsg('admin-login-msg', 'Something went wrong: ' + err.message, 'error');
+  }
+}
+
+function handleAdminLogout() {
+  sessionStorage.removeItem('adminToken');
+  sessionStorage.removeItem('adminName');
+  sessionStorage.removeItem('adminRole');
+  showView('landing');
+}
+
+// ---------- OFFICERS ----------
+function getOfficerToken() { return sessionStorage.getItem('officerToken'); }
+
+async function handleOfficerLogin() {
+  const hrmsId = document.getElementById('o-hrms').value.trim();
+  const password = document.getElementById('o-password').value;
+  if (!hrmsId || !password) {
+    showMsg('officer-login-msg', 'Please enter HRMS ID and password.', 'error');
+    return;
+  }
+  showOverlay('<div class="spinner">Logging in…</div>');
+  try {
+    const result = await callBackend({ action: 'adminLogin', hrmsId: hrmsId, password: password });
+    hideOverlay();
+    if (!result.ok) {
+      showMsg('officer-login-msg', result.error || 'Login failed.', 'error');
+      return;
+    }
+    if (result.role !== 'Officer' && result.role !== 'Admin') {
+      showMsg('officer-login-msg', 'This login is not registered for Officer access.', 'error');
+      return;
+    }
+    sessionStorage.setItem('officerToken', result.token);
+    sessionStorage.setItem('officerName', result.name);
+    sessionStorage.setItem('officerRole', result.role);
+    showView('officer-dashboard');
+  } catch (err) {
+    hideOverlay();
+    showMsg('officer-login-msg', 'Something went wrong: ' + err.message, 'error');
+  }
+}
+
+function handleOfficerLogout() {
+  stopOfficerSummaryAutoRefresh();
+  sessionStorage.removeItem('officerToken');
+  sessionStorage.removeItem('officerName');
+  sessionStorage.removeItem('officerRole');
+  showView('landing');
+}
+
+// ---------- OFFICERS DASHBOARD (rose gold / blue themed post + station board) ----------
+// Two modes:
+//  - "station" mode (default, existing behaviour preserved): click ONE
+//    station, see every post's live count at that station.
+//  - "post" mode (new): pick ONE post, select one or more stations, see that
+//    post's live count at each selected station.
+//
+// OFFICER_POST_GROUPS mirrors the backend constant of the same name in
+// Code.gs — four ranking-pooled pairs (SS/CYM, YM/SM, CHC/SCNL, Sr./Jr.
+// Clerk) are shown as ONE post each here, matching how they actually share a
+// single FCFS queue, even though the Officers sheet stores them as two
+// columns. Keep this list in sync with Code.gs if columns ever change.
+const OFFICER_POST_GROUPS = [
+  { key: 'SM_YM', label: 'SM / YM' },
+  { key: 'SS_CYM', label: 'SS / CYM' },
+  { key: 'PMAN_GROUP', label: 'Pointsman Group' },
+  { key: 'GTM_GROUP', label: 'GTM Group' },
+  { key: 'CLERK', label: 'Sr. / Jr. Clerk' },
+  { key: 'CHC_SCNL', label: 'CHC / SCNL' },
+  { key: 'TI', label: 'TI' },
+  { key: 'MTM', label: 'MTM' },
+  { key: 'SPTM', label: 'SPTM' },
+  { key: 'SHUNTING_MASTER', label: 'Shunting Master' },
+  { key: 'CABINMAN', label: 'Cabinman' },
+  { key: 'SR_CABINMAN', label: 'Sr. Cabinman' },
+  { key: 'GATEMAN_NOT_FIT', label: 'Gateman (Not Fit)' },
+  { key: 'WMI', label: 'WMI' },
+  { key: 'CWMI', label: 'CWMI' },
+  { key: 'COS', label: 'COS' },
+  { key: 'OS', label: 'OS' },
+  { key: 'CTNC', label: 'CTNC' },
+  { key: 'STNC', label: 'STNC' },
+  { key: 'TNC', label: 'TNC' },
+  { key: 'TADK', label: 'TADK' },
+  { key: 'GA', label: 'GA' }
+];
+// Default quick-access posts shown as chips; the rest are reachable via search.
+const OFFICER_DEFAULT_POST_KEYS = ['SM_YM', 'PMAN_GROUP', 'GTM_GROUP', 'CLERK', 'SS_CYM'];
+// Default quick-access stations, confirmed by Dom.
+const OFFICER_DEFAULT_STATIONS = ['NDLS', 'HNZM', 'DLI', 'SNP', 'PNP', 'DEC', 'BWSN'];
+
+// Division-summary tiles: same 5 default posts as above, but with the short,
+// plain-English labels Dom asked for (SM, Pointsman, GTM, Clerks, SS) instead
+// of the more precise pooled-pair names used in the "View by Post" picker.
+const OFFICER_SUMMARY_DEFAULT_KEYS = ['SM_YM', 'PMAN_GROUP', 'GTM_GROUP', 'CLERK', 'SS_CYM'];
+const OFFICER_SUMMARY_SHORT_LABELS = {
+  SM_YM: 'SM',
+  PMAN_GROUP: 'Pointsman',
+  GTM_GROUP: 'GTM',
+  CLERK: 'Clerks',
+  SS_CYM: 'SS'
+};
+const OFFICER_SUMMARY_TILE_COLORS = ['tile-sm', 'tile-pointsman', 'tile-gtm', 'tile-clerk', 'tile-ss'];
+// Solid hex per default post, used to color that post's chart bars so the
+// chart visually matches whichever tile is currently selected. Extra posts
+// added via the dropdown fall back to OFFICER_EXTRA_TILE_HEX (grey).
+const OFFICER_TILE_HEX = {
+  SM_YM: '#3d7bf5',
+  PMAN_GROUP: '#f7ac2e',
+  GTM_GROUP: '#34c77c',
+  CLERK: '#a377f2',
+  SS_CYM: '#f16aa0'
+};
+const OFFICER_EXTRA_TILE_HEX = '#7c8ca3';
+const OFFICER_SUMMARY_REFRESH_MS = 15 * 60 * 1000; // 15 minutes
+
+var officerMode = 'station';         // 'station' | 'post'
+var officerExtraPosts = [];          // extra {key,label} post groups added via search, "post" mode
+var officerExtraStations = [];       // stations added via the search box (shared by both modes)
+var officerSelectedStation = null;   // single-select, "station" mode
+var officerSelectedPostKey = null;   // single-select, "post" mode
+var officerSelectedStationsSet = {}; // multi-select, "post" mode: { STATIONCODE: true }
+
+var officerSummaryMatrix = null;     // last getOfficerLiveMatrix() response
+var officerSummaryExtraKeys = [];    // extra post keys added to the summary row via search
+var officerSummaryRefreshTimer = null;
+var officerSummaryChartKey = 'PMAN_GROUP'; // which tile's top-5 chart is showing below (defaults to Pointsman)
+
+function initOfficerDashboard() {
+  officerMode = 'station';
+  officerExtraPosts = [];
+  officerExtraStations = [];
+  officerSelectedStation = null;
+  officerSelectedPostKey = null;
+  officerSelectedStationsSet = {};
+  officerSummaryMatrix = null;
+  officerSummaryExtraKeys = [];
+  officerSummaryChartKey = 'PMAN_GROUP';
+  document.getElementById('officer-mode-btn-station').classList.add('active');
+  document.getElementById('officer-mode-btn-post').classList.remove('active');
+  document.getElementById('officer-post-panel').classList.add('hidden');
+  document.getElementById('officer-station-panel-label').textContent = 'STATIONS';
+  renderOfficerPostChips();
+  renderOfficerStationTiles();
+  renderOfficerSummaryTiles();
+  renderOfficerSummaryPostSelect();
+  renderOfficerSummaryChart();
+  document.getElementById('officer-results-panel').innerHTML =
+    '<p class="hint">Click a station above (or search for one) to see live priority numbers for every post.</p>';
+  loadOfficerSummary();
+  startOfficerSummaryAutoRefresh();
+}
+
+// ---- Division summary tiles (top of dashboard, auto-refreshing) ----
+async function loadOfficerSummary() {
+  const token = getOfficerToken();
+  if (!token) return;
+  try {
+    const url = APPS_SCRIPT_URL + '?action=getOfficerLiveMatrix&token=' + encodeURIComponent(token);
+    const res = await fetch(url).then(function (r) { return r.json(); });
+    if (!res.ok) return; // silent — background refresh shouldn't interrupt the officer with an error banner
+    officerSummaryMatrix = res;
+    renderOfficerSummaryTiles();
+    renderOfficerSummaryChart();
+  } catch (err) {
+    // Silent on background refresh failure — keep showing the last known good numbers.
+  }
+}
+
+function startOfficerSummaryAutoRefresh() {
+  stopOfficerSummaryAutoRefresh();
+  officerSummaryRefreshTimer = setInterval(loadOfficerSummary, OFFICER_SUMMARY_REFRESH_MS);
+}
+
+function stopOfficerSummaryAutoRefresh() {
+  if (officerSummaryRefreshTimer) {
+    clearInterval(officerSummaryRefreshTimer);
+    officerSummaryRefreshTimer = null;
+  }
+}
+
+function renderOfficerSummaryTiles() {
+  var container = document.getElementById('officer-summary-tiles');
+  var updatedEl = document.getElementById('officer-summary-updated');
+  if (!officerSummaryMatrix) {
+    container.innerHTML = '<div class="spinner">Loading division summary…</div>';
+    updatedEl.textContent = '';
+    return;
+  }
+
+  var postsByKey = {};
+  officerSummaryMatrix.posts.forEach(function (p) { postsByKey[p.key] = p; });
+
+  var keys = OFFICER_SUMMARY_DEFAULT_KEYS.concat(officerSummaryExtraKeys);
+  container.innerHTML = keys.map(function (key, idx) {
+    var p = postsByKey[key];
+    var group = findOfficerPostGroup(key);
+    var label = OFFICER_SUMMARY_SHORT_LABELS[key] || (group ? group.label : key);
+    var total = p ? p.total : 0;
+    var colorClass = idx < OFFICER_SUMMARY_TILE_COLORS.length ? OFFICER_SUMMARY_TILE_COLORS[idx] : 'tile-extra';
+    var selected = officerSummaryChartKey === key ? ' selected' : '';
+    return '<div class="officer-summary-tile ' + colorClass + selected + '" onclick="handleOfficerSummaryTileClick(\'' + key + '\')">' +
+      '<div class="officer-summary-tile-label">' + label + '</div>' +
+      '<div class="officer-summary-tile-num">' + total + '</div>' +
+    '</div>';
+  }).join('');
+
+  try {
+    var updated = new Date(officerSummaryMatrix.generatedAt);
+    updatedEl.textContent = 'Updated ' + updated.toLocaleTimeString();
+  } catch (err) {
+    updatedEl.textContent = '';
+  }
+}
+
+function handleOfficerSummaryTileClick(key) {
+  officerSummaryChartKey = key;
+  renderOfficerSummaryTiles();
+  renderOfficerSummaryChart();
+}
+
+function renderOfficerSummaryChart() {
+  var container = document.getElementById('officer-summary-chart');
+  if (!officerSummaryMatrix) {
+    container.innerHTML = '<div class="spinner">Loading…</div>';
+    return;
+  }
+
+  var postsByKey = {};
+  officerSummaryMatrix.posts.forEach(function (p) { postsByKey[p.key] = p; });
+  var post = postsByKey[officerSummaryChartKey];
+  var group = findOfficerPostGroup(officerSummaryChartKey);
+  var label = OFFICER_SUMMARY_SHORT_LABELS[officerSummaryChartKey] || (group ? group.label : officerSummaryChartKey);
+
+  if (!post || !Object.keys(post.byStation).length) {
+    container.innerHTML = '<p class="officer-chart-title">Top 5 Stations — ' + label + '</p>' +
+      '<p class="hint">No live priority currently recorded for this post at any station.</p>';
+    return;
+  }
+
+  var rows = Object.keys(post.byStation).map(function (station) {
+    return { station: station, count: post.byStation[station] };
+  });
+  rows.sort(function (a, b) { return b.count - a.count; });
+  rows = rows.slice(0, 5);
+  var maxCount = rows[0].count;
+  var barColor = OFFICER_TILE_HEX[officerSummaryChartKey] || OFFICER_EXTRA_TILE_HEX;
+
+  var barsHtml = rows.map(function (r) {
+    var pct = Math.round((r.count / maxCount) * 100);
+    return '<div class="officer-chart-row">' +
+      '<div class="officer-chart-station">' + r.station + '</div>' +
+      '<div class="officer-chart-bar-track"><div class="officer-chart-bar-fill" style="width:' + pct + '%; background:' + barColor + ';"></div></div>' +
+      '<div class="officer-chart-count">' + r.count + '</div>' +
+    '</div>';
+  }).join('');
+
+  container.innerHTML = '<p class="officer-chart-title">Top 5 Stations — ' + label + '</p>' + barsHtml;
+}
+
+function handleOfficerSummaryAddPost() {
+  var select = document.getElementById('officer-summary-post-select');
+  var key = select.value;
+  if (!key) return;
+  var alreadyShown = OFFICER_SUMMARY_DEFAULT_KEYS.indexOf(key) !== -1 ||
+    officerSummaryExtraKeys.indexOf(key) !== -1;
+  if (!alreadyShown) officerSummaryExtraKeys.push(key);
+  renderOfficerSummaryTiles();
+  renderOfficerSummaryPostSelect();
+}
+
+// Dropdown only ever offers posts NOT already showing as a tile (the 5
+// defaults, plus whatever's already been added), so there's no way to pick
+// a duplicate.
+function renderOfficerSummaryPostSelect() {
+  var select = document.getElementById('officer-summary-post-select');
+  var shown = OFFICER_SUMMARY_DEFAULT_KEYS.concat(officerSummaryExtraKeys);
+  var available = OFFICER_POST_GROUPS.filter(function (p) { return shown.indexOf(p.key) === -1; });
+  if (!available.length) {
+    select.innerHTML = '<option value="">All posts already shown</option>';
+    select.disabled = true;
+    return;
+  }
+  select.disabled = false;
+  select.innerHTML = '<option value="">Add another post to this summary…</option>' +
+    available.map(function (p) { return '<option value="' + p.key + '">' + p.label + '</option>'; }).join('');
+}
+
+function switchOfficerMode(mode) {
+  if (mode === officerMode) return;
+  officerMode = mode;
+  officerSelectedStation = null;
+  officerSelectedStationsSet = {};
+  document.getElementById('officer-mode-btn-station').classList.toggle('active', mode === 'station');
+  document.getElementById('officer-mode-btn-post').classList.toggle('active', mode === 'post');
+  document.getElementById('officer-post-panel').classList.toggle('hidden', mode !== 'post');
+  document.getElementById('officer-station-panel-label').textContent =
+    mode === 'post' ? 'STATIONS (select one or more)' : 'STATIONS';
+  renderOfficerStationTiles();
+  document.getElementById('officer-results-panel').innerHTML = mode === 'post'
+    ? '<p class="hint">Select a post, then one or more stations, to see live priority numbers.</p>'
+    : '<p class="hint">Click a station above (or search for one) to see live priority numbers for every post.</p>';
+}
+
+function renderOfficerPostChips() {
+  var defaults = OFFICER_POST_GROUPS.filter(function (p) {
+    return OFFICER_DEFAULT_POST_KEYS.indexOf(p.key) !== -1;
+  });
+  var all = defaults.concat(officerExtraPosts);
+  document.getElementById('officer-post-chips').innerHTML = all.map(function (p) {
+    var active = officerSelectedPostKey === p.key;
+    return '<span class="officer-chip' + (active ? ' active' : '') + '" onclick="handleOfficerPostClick(\'' + p.key + '\')">' + p.label + '</span>';
+  }).join('');
+}
+
+function renderOfficerStationTiles() {
+  var all = OFFICER_DEFAULT_STATIONS.concat(officerExtraStations);
+  document.getElementById('officer-station-matrix').innerHTML = all.map(function (s) {
+    var active = officerMode === 'post' ? !!officerSelectedStationsSet[s] : (officerSelectedStation === s);
+    return '<div class="officer-station-tile' + (active ? ' active' : '') + '" onclick="handleOfficerStationClick(\'' + s + '\')">' + s + '</div>';
+  }).join('');
+}
+
+function findOfficerPostGroup(key) {
+  for (var i = 0; i < OFFICER_POST_GROUPS.length; i++) {
+    if (OFFICER_POST_GROUPS[i].key === key) return OFFICER_POST_GROUPS[i];
+  }
+  return null;
+}
+
+function handleOfficerPostSearch() {
+  var input = document.getElementById('officer-post-search');
+  var raw = input.value.trim().toLowerCase();
+  input.value = '';
+  if (!raw) return;
+  var match = null;
+  for (var i = 0; i < OFFICER_POST_GROUPS.length; i++) {
+    var p = OFFICER_POST_GROUPS[i];
+    if (p.label.toLowerCase().indexOf(raw) !== -1 || p.key.toLowerCase() === raw) { match = p; break; }
+  }
+  if (!match) {
+    alert('No matching post found. Try: SM, SS, Pointsman, GTM, Clerk, CHC, TI, MTM, SPTM, Shunting Master, Cabinman, WMI, CWMI, COS, OS, CTNC, STNC, TNC, TADK, or GA.');
+    return;
+  }
+  var alreadyShown = OFFICER_DEFAULT_POST_KEYS.indexOf(match.key) !== -1 ||
+    officerExtraPosts.some(function (p) { return p.key === match.key; });
+  if (!alreadyShown) officerExtraPosts.push(match);
+  renderOfficerPostChips();
+  handleOfficerPostClick(match.key);
+}
+
+function handleOfficerStationSearch() {
+  var input = document.getElementById('officer-station-search');
+  var raw = input.value.trim().toUpperCase();
+  input.value = '';
+  if (!raw) return;
+  var all = OFFICER_DEFAULT_STATIONS.concat(officerExtraStations);
+  if (all.indexOf(raw) === -1) officerExtraStations.push(raw);
+  if (officerMode === 'post') {
+    officerSelectedStationsSet[raw] = true;
+    renderOfficerStationTiles();
+    refreshOfficerPostView();
+  } else {
+    renderOfficerStationTiles();
+    handleOfficerStationLookup(raw);
+  }
+}
+
+// "post" mode: single-select post chip.
+function handleOfficerPostClick(key) {
+  officerSelectedPostKey = key;
+  renderOfficerPostChips();
+  refreshOfficerPostView();
+}
+
+// Station tile click dispatches by mode: single-select lookup ("station"
+// mode, existing behaviour) vs. multi-select toggle ("post" mode, new).
+function handleOfficerStationClick(station) {
+  if (officerMode === 'post') {
+    if (officerSelectedStationsSet[station]) {
+      delete officerSelectedStationsSet[station];
+    } else {
+      officerSelectedStationsSet[station] = true;
+    }
+    renderOfficerStationTiles();
+    refreshOfficerPostView();
+  } else {
+    renderOfficerStationTiles();
+    handleOfficerStationLookup(station);
+  }
+}
+
+// ---- "station" mode: one station → every post's live count (unchanged) ----
+async function handleOfficerStationLookup(station) {
+  officerSelectedStation = station;
+  renderOfficerStationTiles();
+  const token = getOfficerToken();
+  const panel = document.getElementById('officer-results-panel');
+  if (!token) { showView('officer-login'); return; }
+  panel.innerHTML = '<div class="spinner">Loading priority numbers for ' + station + '…</div>';
+  try {
+    const url = APPS_SCRIPT_URL + '?action=getOfficerStationLookup&token=' + encodeURIComponent(token) +
+      '&station=' + encodeURIComponent(station);
+    const res = await fetch(url).then(function (r) { return r.json(); });
+    if (!res.ok) {
+      panel.innerHTML = '<div class="msg error">' + (res.error || 'Lookup failed.') + '</div>';
+      return;
+    }
+    var nonZero = res.results.filter(function (r) { return r.count > 0; });
+    if (!nonZero.length) {
+      panel.innerHTML = '<p class="officer-results-title">' + res.station + '</p><p class="hint">No live priority currently recorded for any post at this station.</p>';
+      return;
+    }
+    var boxes = nonZero.map(function (r) {
+      return '<div class="officer-box">' +
+        '<div class="officer-box-label">' + r.label + '</div>' +
+        '<div class="officer-box-num">' + r.count + '</div>' +
+      '</div>';
+    }).join('');
+    panel.innerHTML = '<p class="officer-results-title">' + res.station + '</p><div class="officer-box-grid">' + boxes + '</div>';
+  } catch (err) {
+    panel.innerHTML = '<div class="msg error">Something went wrong: ' + err.message + '</div>';
+  }
+}
+
+// ---- "post" mode: one post → live count at each selected station (new) ----
+async function refreshOfficerPostView() {
+  var panel = document.getElementById('officer-results-panel');
+  var stations = Object.keys(officerSelectedStationsSet);
+
+  if (!officerSelectedPostKey) {
+    panel.innerHTML = '<p class="hint">Select a post, then one or more stations, to see live priority numbers.</p>';
+    return;
+  }
+  if (!stations.length) {
+    panel.innerHTML = '<p class="hint">Select one or more stations to see live priority numbers for this post.</p>';
+    return;
+  }
+
+  const token = getOfficerToken();
+  if (!token) { showView('officer-login'); return; }
+  panel.innerHTML = '<div class="spinner">Loading priority numbers…</div>';
+  try {
+    const url = APPS_SCRIPT_URL + '?action=getOfficerPostAcrossStations&token=' + encodeURIComponent(token) +
+      '&post=' + encodeURIComponent(officerSelectedPostKey) +
+      '&stations=' + encodeURIComponent(stations.join(','));
+    const res = await fetch(url).then(function (r) { return r.json(); });
+    if (!res.ok) {
+      panel.innerHTML = '<div class="msg error">' + (res.error || 'Lookup failed.') + '</div>';
+      return;
+    }
+    var boxes = res.results.map(function (r) {
+      return '<div class="officer-box">' +
+        '<div class="officer-box-label">' + r.station + '</div>' +
+        '<div class="officer-box-num">' + r.count + '</div>' +
+      '</div>';
+    }).join('');
+    panel.innerHTML = '<p class="officer-results-title">' + res.postLabel + '</p><div class="officer-box-grid">' + boxes + '</div>';
+  } catch (err) {
+    panel.innerHTML = '<div class="msg error">Something went wrong: ' + err.message + '</div>';
+  }
+}
+
+async function loadDashboardStats() {
+  const content = document.getElementById('admin-kpi-content');
+  const token = getAdminToken();
+  if (!token) { showView('admin-login'); return; }
+  content.innerHTML = '<div class="spinner">Loading KPIs…</div>';
+  try {
+    const url = APPS_SCRIPT_URL + '?action=getDashboardStats&token=' + encodeURIComponent(token);
+    const res = await fetch(url).then(function (r) { return r.json(); });
+    if (!res.ok) {
+      content.innerHTML = '<div class="msg error">' + (res.error || 'Could not load KPIs.') + '</div>';
+      return;
+    }
+    var keys = Object.keys(res.stats || {});
+    if (!keys.length) {
+      content.innerHTML = '<p class="hint">No applications recorded yet.</p>';
+      return;
+    }
+    var cards = keys.map(function (k) {
+      var s = res.stats[k];
+      return '<div class="kpi-post-card">' +
+        '<h3>' + s.label + '</h3>' +
+        '<div class="kpi-stat-row">' +
+          '<div class="kpi-stat" onclick="showKpiDetail(\'' + k + '\',\'receivedThisMonth\',\'Received This Month\')"><div class="kpi-num">' + s.receivedThisMonth + '</div><div class="kpi-label">Received This Month</div></div>' +
+          '<div class="kpi-stat" onclick="showKpiDetail(\'' + k + '\',\'pending\',\'Pending Approval\')"><div class="kpi-num">' + s.pending + '</div><div class="kpi-label">Pending Approval</div></div>' +
+          '<div class="kpi-stat approved" onclick="showKpiDetail(\'' + k + '\',\'approved\',\'Approved\')"><div class="kpi-num">' + s.approved + '</div><div class="kpi-label">Approved</div></div>' +
+          '<div class="kpi-stat rejected" onclick="showKpiDetail(\'' + k + '\',\'rejected\',\'Rejected\')"><div class="kpi-num">' + s.rejected + '</div><div class="kpi-label">Rejected</div></div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    content.innerHTML = '<p class="kpi-month">' + res.monthLabel + '</p><div class="kpi-grid">' + cards + '</div>';
+  } catch (err) {
+    content.innerHTML = '<div class="msg error">Something went wrong: ' + err.message + '</div>';
+  }
+}
+
+// ---------- PENDING STATION CHANGE REQUESTS (ADMIN) ----------
+async function loadPendingChanges() {
+  const content = document.getElementById('pending-changes-content');
+  const token = getAdminToken();
+  if (!token) return;
+  content.innerHTML = '<div class="spinner">Loading…</div>';
+  try {
+    const url = APPS_SCRIPT_URL + '?action=listPendingChanges&token=' + encodeURIComponent(token);
+    const res = await fetch(url).then(function (r) { return r.json(); });
+    if (!res.ok) {
+      content.innerHTML = '<div class="msg error">' + (res.error || 'Could not load requests.') + '</div>';
+      return;
+    }
+    if (!res.requests.length) {
+      content.innerHTML = '<p class="hint">No pending station change requests.</p>';
+      return;
+    }
+    content.innerHTML = res.requests.map(function (r) {
+      return '<div class="modal-list-item">' +
+        '<div class="row"><span><b>' + r.name + '</b> (HRMS: ' + r.hrmsId + ')</span><span>' + r.appId + '</span></div>' +
+        '<div class="row"><span>' + r.designationLabel + '</span><span>Current: ' + r.currentPreferences.join(', ') + '</span></div>' +
+        '<div class="row"><span>Change: <b>' + r.oldStation + ' &rarr; ' + r.newStation + '</b></span><span>Requested ' + new Date(r.requestedDate).toDateString() + '</span></div>' +
+        '<div class="row"><span>Reference: ' + r.reference + '</span></div>' +
+        (r.documentLink ? '<a class="doc-link" href="' + r.documentLink + '" target="_blank">View uploaded document →</a>' : '<p class="hint">No document uploaded.</p>') +
+        '<div class="pending-actions">' +
+          '<button class="btn btn-approve btn-small" onclick="handlePreferenceChangeReview(\'' + r.appId + '\',\'approve\')">Approve</button>' +
+          '<button class="btn btn-reject btn-small" onclick="handlePreferenceChangeReview(\'' + r.appId + '\',\'reject\')">Reject</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch (err) {
+    content.innerHTML = '<div class="msg error">Something went wrong: ' + err.message + '</div>';
+  }
+}
+
+async function handlePreferenceChangeReview(appId, decision) {
+  var reason = '';
+  if (decision === 'reject') {
+    reason = prompt('Reason for rejecting this station change (optional):', '');
+    if (reason === null) return;
+  }
+  const token = getAdminToken();
+  showOverlay('<div class="spinner">Recording decision…</div>');
+  try {
+    const result = await callBackend({ action: 'reviewPreferenceChange', token: token, appId: appId, decision: decision, reason: reason });
+    hideOverlay();
+    if (!result.ok) {
+      alert(result.error || 'Action failed.');
+      return;
+    }
+    if (result.rejected) {
+      alert('Station change request for ' + appId + ' was rejected.');
+    } else {
+      alert('Approved: ' + appId + ' station changed from ' + result.oldStation + ' to ' + result.newStation + '.');
+    }
+    loadPendingChanges();
+    loadDashboardStats();
+    loadPriorityBoard();
+  } catch (err) {
+    hideOverlay();
+    alert('Something went wrong: ' + err.message);
+  }
+}
+
+// ---------- PRIORITY BOARD ----------
+// JIND was requested as a major-station column but isn't in the current
+// STATIONS master list — left out until confirmed, so it isn't silently
+// wrong. Easy to add once confirmed.
+const MAJOR_STATIONS = ['NDLS', 'HNZM', 'DLI', 'SSB', 'GZB', 'MUT', 'ROK', 'TKD', 'FN', 'SNP', 'PNP', 'DEE', 'ANVT'];
+var boardData = null;
+var selectedPosts = new Set();
+var selectedStations = new Set();
+var extraBoardStations = []; // stations added via search, beyond the majors
+
+function getPostList() {
+  return Array.from(document.querySelectorAll('#f-designation option')).map(function (o) {
+    return { key: o.value.trim().toUpperCase(), label: o.textContent.trim() };
+  });
+}
+
+function boardCellHtml(station, desigKey) {
+  var cell = (boardData[station] && boardData[station][desigKey]) || { approved: 0, pending: 0 };
+  return '<span class="board-cell-approved">A: ' + cell.approved + '</span> / <span class="board-cell-pending">P: ' + cell.pending + '</span>';
+}
+
+function renderBoardChips() {
+  var posts = getPostList();
+  document.getElementById('board-post-chips').innerHTML = posts.map(function (p) {
+    var active = selectedPosts.has(p.key);
+    return '<span class="board-chip post' + (active ? ' active' : '') + '" onclick="toggleBoardPost(this.dataset.key)" data-key="' + p.key.replace(/"/g, '&quot;') + '">' + p.label + '</span>';
+  }).join('');
+
+  var allStations = MAJOR_STATIONS.concat(extraBoardStations);
+  document.getElementById('board-station-chips').innerHTML = allStations.map(function (s) {
+    var active = selectedStations.has(s);
+    var isExtra = extraBoardStations.indexOf(s) !== -1;
+    return '<span class="board-chip station' + (active ? ' active' : '') + '" onclick="toggleBoardStation(\'' + s + '\')">' + s +
+      (isExtra ? ' <span class="chip-remove" onclick="event.stopPropagation(); removeBoardStation(\'' + s + '\')">&times;</span>' : '') +
+      '</span>';
+  }).join('');
+}
+
+function toggleBoardPost(key) {
+  if (selectedPosts.has(key)) selectedPosts.delete(key); else selectedPosts.add(key);
+  renderBoardChips();
+  renderBoardResults();
+}
+
+function toggleBoardStation(code) {
+  if (selectedStations.has(code)) selectedStations.delete(code); else selectedStations.add(code);
+  renderBoardChips();
+  renderBoardResults();
+}
+
+function removeBoardStation(code) {
+  extraBoardStations = extraBoardStations.filter(function (s) { return s !== code; });
+  selectedStations.delete(code);
+  renderBoardChips();
+  renderBoardResults();
+}
+
+function handleAddBoardStation() {
+  const input = document.getElementById('board-station-search');
+  var raw = input.value.trim().toUpperCase();
+  input.value = '';
+  if (!raw) return;
+  if (MAJOR_STATIONS.indexOf(raw) === -1 && extraBoardStations.indexOf(raw) === -1) {
+    extraBoardStations.push(raw);
+  }
+  selectedStations.add(raw);
+  renderBoardChips();
+  renderBoardResults();
+}
+
+function renderBoardResults() {
+  const content = document.getElementById('priority-board-content');
+  if (!boardData) { content.innerHTML = '<div class="spinner">Loading board…</div>'; return; }
+  if (selectedPosts.size === 0 || selectedStations.size === 0) {
+    content.innerHTML = '<p class="hint">Click at least one post and one station above to see the numbers.</p>';
+    return;
+  }
+  var posts = getPostList().filter(function (p) { return selectedPosts.has(p.key); });
+  var stations = Array.from(selectedStations);
+  var headerCells = stations.map(function (s) { return '<th>' + s + '</th>'; }).join('');
+  var rows = posts.map(function (p) {
+    var cells = stations.map(function (s) { return '<td>' + boardCellHtml(s, p.key) + '</td>'; }).join('');
+    return '<tr><td class="post-name">' + p.label + '</td>' + cells + '</tr>';
+  }).join('');
+  content.innerHTML = '<div class="board-wrap"><table class="board-table"><thead><tr><th class="post-col">Post</th>' + headerCells + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+async function loadPriorityBoard() {
+  const token = getAdminToken();
+  if (!token) { showView('admin-login'); return; }
+  document.getElementById('board-post-chips').innerHTML = '<div class="spinner">Loading…</div>';
+  try {
+    const url = APPS_SCRIPT_URL + '?action=getPriorityBoard&token=' + encodeURIComponent(token);
+    const res = await fetch(url).then(function (r) { return r.json(); });
+    if (!res.ok) {
+      document.getElementById('board-post-chips').innerHTML = '<div class="msg error">' + (res.error || 'Could not load the board.') + '</div>';
+      return;
+    }
+    boardData = res.board;
+    renderBoardChips();
+    renderBoardResults();
+  } catch (err) {
+    document.getElementById('board-post-chips').innerHTML = '<div class="msg error">Something went wrong: ' + err.message + '</div>';
+  }
+}
+
+async function handleDeleteApplication() {
+  const appId = document.getElementById('del-app-id').value.trim();
+  const msgEl = document.getElementById('delete-msg');
+  if (!appId) {
+    msgEl.innerHTML = '<div class="msg error">Please enter a Priority No. (App ID).</div>';
+    return;
+  }
+  var confirmed = confirm(
+    'This will PERMANENTLY delete application ' + appId + '.\n\n' +
+    'This cannot be undone (a snapshot is kept in the Audit Log, but the record itself will be gone).\n\n' +
+    'Use only for test/dummy entries. Continue?'
+  );
+  if (!confirmed) return;
+
+  const token = getAdminToken();
+  showOverlay('<div class="spinner">Deleting record…</div>');
+  try {
+    const result = await callBackend({ action: 'deleteApplication', token: token, appId: appId });
+    hideOverlay();
+    if (!result.ok) {
+      msgEl.innerHTML = '<div class="msg error">' + (result.error || 'Delete failed.') + '</div>';
+      return;
+    }
+    msgEl.innerHTML = '<div class="msg success">Deleted ' + result.appId + ' from ' + result.deletedFrom + '.</div>';
+    document.getElementById('del-app-id').value = '';
+    loadDashboardStats();
+  } catch (err) {
+    hideOverlay();
+    msgEl.innerHTML = '<div class="msg error">Something went wrong: ' + err.message + '</div>';
+  }
+}
+
+var currentModal = { designation: null, category: null, label: null };
+
+function renderModalItem(p, category) {
+  var head = '<div class="row"><span><b>' + p.name + '</b> (HRMS: ' + p.hrmsId + ')</span><span>' + p.appId + '</span></div>' +
+    '<div class="row"><span>Father: ' + (p.fatherName || '—') + '</span><span>Phone: ' + (p.phone || '—') + '</span></div>' +
+    '<div class="row"><span>Current: ' + p.currentStation + ' (since ' + (p.currentPostingFrom || '—') + ')</span></div>' +
+    '<div class="row"><span>Preferences: ' + (p.preferences || []).join(', ') + '</span></div>' +
+    '<div class="row"><span>Filed: ' + new Date(p.filingDate).toDateString() + '</span><span>' + (p.source === 'Archived' ? 'Archived' : p.status) + '</span></div>';
+
+  if (category === 'pending') {
+    head += '<div class="row"><span>PF No: ' + (p.pfNo || '—') + '</span><span>Posting Order Date: ' + (p.postingOrderDate || '—') + '</span></div>' +
+      (p.lastTransfer ? '<div class="row"><span>Last Transfer: ' + p.lastTransfer + '</span></div>' : '') +
+      (p.documentLink ? '<a class="doc-link" href="' + p.documentLink + '" target="_blank">View uploaded document →</a>' : '<p class="hint">No document uploaded.</p>') +
+      '<div class="pending-actions">' +
+        '<button class="btn btn-approve btn-small" onclick="handleReview(\'' + p.appId + '\',\'approve\')">Approve</button>' +
+        '<button class="btn btn-reject btn-small" onclick="handleReview(\'' + p.appId + '\',\'reject\')">Reject</button>' +
+      '</div>';
+  } else if (category === 'rejected' && p.remarks) {
+    head += '<div class="row"><span style="color:var(--bad);">Reason: ' + p.remarks + '</span></div>';
+  } else if (category === 'approved' && sessionStorage.getItem('adminRole') === 'Admin') {
+    head += '<div class="pending-actions">' +
+      '<button class="btn btn-approve btn-small" onclick="handleMarkTransferred(\'' + p.appId + '\')">Mark as Transferred</button>' +
+    '</div>';
+  }
+  return '<div class="modal-list-item">' + head + '</div>';
+}
+
+async function showKpiDetail(designation, category, label) {
+  currentModal = { designation: designation, category: category, label: label };
+  const token = getAdminToken();
+  showOverlay('<div class="spinner">Loading ' + label + '…</div>', true);
+  try {
+    const url = APPS_SCRIPT_URL + '?action=listByCategory&token=' + encodeURIComponent(token) +
+      '&designation=' + encodeURIComponent(designation) + '&category=' + encodeURIComponent(category);
+    const res = await fetch(url).then(function (r) { return r.json(); });
+
+    if (!res.ok) {
+      showOverlay('<div class="msg error">' + (res.error || 'Could not load details.') + '</div><div class="actions"><button class="btn btn-text" onclick="hideOverlay()">Close</button></div>', true);
+      return;
+    }
+    var titleHtml = '<div class="modal-sticky-head" style="display:flex;justify-content:space-between;align-items:center;">' +
+      '<h2 style="margin:0;">' + label + ' — ' + res.designationLabel + '</h2>' +
+      '<button class="btn btn-text" onclick="hideOverlay()">Close</button></div>';
+
+    if (!res.applications.length) {
+      showOverlay(titleHtml + '<p class="hint">No applications in this category.</p>', true);
+      return;
+    }
+    var list = res.applications.map(function (p) { return renderModalItem(p, category); }).join('');
+    showOverlay(titleHtml + list, true);
+  } catch (err) {
+    showOverlay('<div class="msg error">Something went wrong: ' + err.message + '</div>', true);
+  }
+}
+
+async function handleReview(appId, decision) {
+  var reason = '';
+  if (decision === 'reject') {
+    reason = prompt('Reason for rejection (shown to the applicant):', 'Document not legible / not properly signed.');
+    if (reason === null) return;
+  }
+  const token = getAdminToken();
+  showOverlay('<div class="spinner">Recording decision…</div>', true);
+  try {
+    const result = await callBackend({ action: 'reviewApplication', token: token, appId: appId, decision: decision, reason: reason });
+    if (!result.ok) {
+      hideOverlay();
+      alert(result.error || 'Action failed.');
+      return;
+    }
+    loadDashboardStats();
+    if (currentModal.designation) {
+      showKpiDetail(currentModal.designation, currentModal.category, currentModal.label);
+    } else {
+      hideOverlay();
+    }
+  } catch (err) {
+    hideOverlay();
+    alert('Something went wrong: ' + err.message);
+  }
+}
+
+function handleMarkTransferred(appId) {
+  var html = '<div class="modal-sticky-head" style="display:flex;justify-content:space-between;align-items:center;">' +
+      '<h2 style="margin:0;">Mark as Transferred</h2>' +
+      '<button class="btn btn-text" onclick="hideOverlay()">Close</button></div>' +
+    '<p class="hint">Priority No. ' + appId + '</p>' +
+    '<label for="mt-station">Station Transferred To</label>' +
+    '<input type="text" id="mt-station" list="station-list" placeholder="e.g. NDLS">' +
+    '<div class="hint">The system will automatically check this against the applicant\'s own priority list and log whether it matched.</div>' +
+    '<label>Transfer Type</label>' +
+    '<div class="radio-row">' +
+      '<label><input type="radio" name="mt-type" value="Permanent"> Permanent</label>' +
+      '<label><input type="radio" name="mt-type" value="Loan"> Loan Basis</label>' +
+    '</div>' +
+    '<label for="mt-reference">Reference (Transfer Order No. / Date)</label>' +
+    '<input type="text" id="mt-reference" placeholder="e.g. P.Branch Order No. XYZ/2026/123, dated 12.07.2026">' +
+    '<div class="hint">Once confirmed, this applicant will not be able to raise a new priority application for 6 months.</div>' +
+    '<div id="mt-msg"></div>' +
+    '<div class="actions">' +
+      '<button class="btn btn-approve" onclick="submitMarkTransferred(\'' + appId + '\')">Confirm Transfer</button>' +
+      '<button class="btn btn-text" onclick="hideOverlay()">Cancel</button>' +
+    '</div>';
+  showOverlay(html, true);
+}
+
+async function submitMarkTransferred(appId) {
+  const station = document.getElementById('mt-station').value.trim();
+  const typeEl = document.querySelector('input[name="mt-type"]:checked');
+  const reference = document.getElementById('mt-reference').value.trim();
+  const msgEl = document.getElementById('mt-msg');
+
+  if (!station) {
+    msgEl.innerHTML = '<div class="msg error">Please enter the station the applicant was transferred to.</div>';
+    return;
+  }
+  if (!typeEl) {
+    msgEl.innerHTML = '<div class="msg error">Please specify whether this is Loan basis or Permanent.</div>';
+    return;
+  }
+  if (!reference) {
+    msgEl.innerHTML = '<div class="msg error">A reference note (transfer order no. / date) is required.</div>';
+    return;
+  }
+
+  const token = getAdminToken();
+  msgEl.innerHTML = '<div class="spinner">Recording transfer…</div>';
+  try {
+    const result = await callBackend({
+      action: 'markTransferred', token: token, appId: appId,
+      transferStation: station, transferType: typeEl.value, reference: reference
+    });
+    if (!result.ok) {
+      msgEl.innerHTML = '<div class="msg error">' + (result.error || 'Action failed.') + '</div>';
+      return;
+    }
+    var matchNote = result.priorityMatch === 'Outside Priority List'
+      ? 'This station was NOT among the applicant\'s priority preferences (logged as Outside Priority List).'
+      : 'This matched the applicant\'s ' + result.priorityMatch + ' (logged).';
+    alert(
+      'Marked ' + appId + ' as Transferred to ' + result.transferStation +
+      ' (' + result.transferType + ' basis).\n\n' + matchNote +
+      '\n\nThis applicant cannot raise a new priority application for 6 months.'
+    );
+    loadDashboardStats();
+    loadPriorityBoard();
+    if (currentModal.designation) {
+      showKpiDetail(currentModal.designation, currentModal.category, currentModal.label);
+    } else {
+      hideOverlay();
+    }
+  } catch (err) {
+    msgEl.innerHTML = '<div class="msg error">Something went wrong: ' + err.message + '</div>';
+  }
+}
+
+async function handleDownloadReport() {
+  const from = document.getElementById('report-from').value;
+  const to = document.getElementById('report-to').value;
+  const msgEl = document.getElementById('report-msg');
+  if (!from || !to) {
+    msgEl.innerHTML = '<div class="msg error">Please select both From and To dates.</div>';
+    return;
+  }
+  if (to < from) {
+    msgEl.innerHTML = '<div class="msg error">The To date cannot be before the From date.</div>';
+    return;
+  }
+  const token = getAdminToken();
+  msgEl.innerHTML = '';
+  showOverlay('<div class="spinner">Building report…</div>');
+  try {
+    const url = APPS_SCRIPT_URL + '?action=getAuditReport&token=' + encodeURIComponent(token) +
+      '&fromDate=' + encodeURIComponent(from) + '&toDate=' + encodeURIComponent(to);
+    const res = await fetch(url).then(function (r) { return r.json(); });
+    hideOverlay();
+
+    if (!res.ok) {
+      msgEl.innerHTML = '<div class="msg error">' + (res.error || 'Could not build report.') + '</div>';
+      return;
+    }
+    if (!res.rows.length) {
+      msgEl.innerHTML = '<div class="msg error">No approvals or rejections recorded in this date range.</div>';
+      return;
+    }
+
+    function csvEscape(v) {
+      var s = (v === null || v === undefined) ? '' : String(v);
+      if (s.indexOf(',') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) {
+        s = '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }
+
+    var header = ['Name', "Father's Name", 'HRMS ID', 'Designation', 'Current Station', 'Preferences',
+      'Requested On', 'Decision', 'Decision On', 'Decided By (ID)', 'Decided By (Name)', 'Remarks'];
+    var csvLines = [header.map(csvEscape).join(',')];
+    var totalApproved = 0, totalRejected = 0;
+
+    res.rows.forEach(function (r) {
+      var line = [
+        r.name, r.fatherName, r.hrmsId, r.designation, r.currentStation, r.preferences,
+        r.requestedOn ? new Date(r.requestedOn).toDateString() : '',
+        r.decision,
+        r.decisionOn ? new Date(r.decisionOn).toLocaleString() : '',
+        r.decidedById, r.decidedByName, r.remarks
+      ];
+      csvLines.push(line.map(csvEscape).join(','));
+      if (r.decision === 'Approved') totalApproved++; else totalRejected++;
+    });
+
+    csvLines.push('');
+    csvLines.push('Summary'.concat(','.repeat(header.length - 1)));
+    csvLines.push(['Total Approved', totalApproved].map(csvEscape).join(','));
+    csvLines.push(['Total Rejected', totalRejected].map(csvEscape).join(','));
+    csvLines.push(['Total Decisions', totalApproved + totalRejected].map(csvEscape).join(','));
+
+    var csvContent = csvLines.join('\n');
+    var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    var blobUrl = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = 'Priority_Activity_Report_' + from + '_to_' + to + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+
+    msgEl.innerHTML = '<div class="msg success">Report downloaded — ' + res.rows.length + ' decision(s) (' + totalApproved + ' approved, ' + totalRejected + ' rejected).</div>';
+  } catch (err) {
+    hideOverlay();
+    msgEl.innerHTML = '<div class="msg error">Something went wrong: ' + err.message + '</div>';
+  }
+}
+</script>
+
+</body>
+</html>
